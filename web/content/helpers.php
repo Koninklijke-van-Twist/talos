@@ -120,8 +120,7 @@ function renderInvoiceTableRow(
     bool $isOverdue,
     bool $includeCompanyColumn = true,
     bool $includeInspectorData = false
-): string
-{
+): string {
     $planningDateRaw = (string) ($line['Planning_Date'] ?? '');
     $jobNo = (string) ($line['Job_No'] ?? '');
     $lineNo = (string) ($line['Line_No'] ?? '');

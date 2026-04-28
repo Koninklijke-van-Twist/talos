@@ -573,7 +573,8 @@
         <?php elseif (empty($pendingInvoiceLines) && empty($upcomingInvoiceLines)): ?>
             <div class="alert alert-info"><?= h(LOC('msg.no_overdue_invoices')) ?></div>
         <?php else: ?>
-            <div class="status-filter-buttons" id="status-filter-buttons" data-all-label="<?= h(LOC('filter.status_all')) ?>">
+            <div class="status-filter-buttons" id="status-filter-buttons"
+                data-all-label="<?= h(LOC('filter.status_all')) ?>">
                 <label><?= h(LOC('filter.status')) ?>:</label>
                 <div class="status-filter-list" id="status-filter-list"></div>
             </div>
@@ -581,8 +582,11 @@
             <?php if (!empty($pendingInvoiceLines)): ?>
                 <div class="summary">
                     <strong><?= h(LOC('section.overdue')) ?>:</strong>
-                    <?= h(LOC('summary.total')) ?> <strong id="overdue-summary-count"><?= count($pendingInvoiceLines) ?></strong>
-                    <span id="overdue-summary-rule"><?= count($pendingInvoiceLines) === 1 ? h(LOC('summary.rule_singular')) : h(LOC('summary.rule_plural')) ?></span> -
+                    <?= h(LOC('summary.total')) ?> <strong
+                        id="overdue-summary-count"><?= count($pendingInvoiceLines) ?></strong>
+                    <span
+                        id="overdue-summary-rule"><?= count($pendingInvoiceLines) === 1 ? h(LOC('summary.rule_singular')) : h(LOC('summary.rule_plural')) ?></span>
+                    -
                     <?= h(LOC('summary.amount')) ?>:
                     <strong id="overdue-summary-amount">
                         <?php
@@ -632,8 +636,10 @@
             <?php if (!empty($upcomingInvoiceLines)): ?>
                 <div class="summary">
                     <strong><?= h($upcomingSectionTitle) ?> (<?= h($upcomingWindowLabel) ?>):</strong>
-                    <?= h(LOC('summary.total')) ?> <strong id="upcoming-summary-count"><?= count($upcomingInvoiceLines) ?></strong>
-                    <span id="upcoming-summary-rule"><?= count($upcomingInvoiceLines) === 1 ? h(LOC('summary.rule_singular')) : h(LOC('summary.rule_plural')) ?></span>
+                    <?= h(LOC('summary.total')) ?> <strong
+                        id="upcoming-summary-count"><?= count($upcomingInvoiceLines) ?></strong>
+                    <span
+                        id="upcoming-summary-rule"><?= count($upcomingInvoiceLines) === 1 ? h(LOC('summary.rule_singular')) : h(LOC('summary.rule_plural')) ?></span>
                     -
                     <?= h(LOC('summary.amount')) ?>:
                     <strong id="upcoming-summary-amount">
@@ -848,7 +854,7 @@
                     if (rowKey !== '' && keySet.has(rowKey)) {
                         return;
                     }
-                    if (rowKey !== '') {
+         if (rowKey !== '') {
                         keySet.add(rowKey);
                     }
 
