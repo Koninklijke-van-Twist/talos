@@ -61,8 +61,8 @@ try {
         'Line_No eq ' . $lineNo,
     ];
 
-    if ($planningDate !== '') {
-        $filters[] = 'Planning_Date eq ' . odataStringLiteral($planningDate);
+    if ($planningDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $planningDate)) {
+        $filters[] = 'Planning_Date eq ' . $planningDate;
     }
     if ($documentNo !== '') {
         $filters[] = 'Document_No eq ' . odataStringLiteral($documentNo);

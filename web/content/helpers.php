@@ -169,19 +169,19 @@ function renderInvoiceTableRow(
     $statusBadge = renderStatusBadge($status);
 
     $html = '<tr ' . $rowAttributes . $rowClass . '>'
-        . '<td>' . h($jobNo) . '</td>'
-        . '<td>' . $statusBadge . '</td>'
-        . '<td>' . h((string) ($line['Description'] ?? '')) . '</td>'
-        . '<td>' . h(formatDate($planningDateRaw)) . '</td>'
-        . '<td>' . $badge . '</td>'
-        . '<td class="amount">' . h(number_format($qtyToInvoice, 2, ',', '.')) . '</td>'
-        . '<td class="amount">' . h(formatCurrency($lineAmount)) . '</td>'
-        . '<td>' . h($customerNo) . '</td>'
-        . '<td>' . h((string) ($line['Document_No'] ?? '')) . '</td>'
-        . '<td>' . h((string) ($line['LVS_Work_Order_No'] ?? '')) . '</td>';
+        . '<td data-col="job">' . h($jobNo) . '</td>'
+        . '<td data-col="status">' . $statusBadge . '</td>'
+        . '<td data-col="description">' . h((string) ($line['Description'] ?? '')) . '</td>'
+        . '<td data-col="planning_date">' . h(formatDate($planningDateRaw)) . '</td>'
+        . '<td data-col="days">' . $badge . '</td>'
+        . '<td data-col="qty" class="amount">' . h(number_format($qtyToInvoice, 2, ',', '.')) . '</td>'
+        . '<td data-col="amount" class="amount">' . h(formatCurrency($lineAmount)) . '</td>'
+        . '<td data-col="customer">' . h($customerNo) . '</td>'
+        . '<td data-col="document_no">' . h((string) ($line['Document_No'] ?? '')) . '</td>'
+        . '<td data-col="work_order">' . h((string) ($line['LVS_Work_Order_No'] ?? '')) . '</td>';
 
     if ($includeCompanyColumn) {
-        $html .= '<td>' . h($company) . '</td>';
+        $html .= '<td data-col="company">' . h($company) . '</td>';
     }
 
     return $html . '</tr>';

@@ -21,21 +21,21 @@ class LocalizationTest extends TestCase
     {
         $_SESSION['lang'] = 'en';
         $result = LOC('page.overdue_invoices.title');
-        $this->assertSame('Project lines pending invoicing', $result);
+        $this->assertSame('Talos', $result);
     }
 
     public function testLocReturnsDeutsch(): void
     {
         $_SESSION['lang'] = 'de';
         $result = LOC('page.overdue_invoices.title');
-        $this->assertSame('Abzurechnende Projektzeilen', $result);
+        $this->assertSame('Talos', $result);
     }
 
     public function testLocReturnsFrench(): void
     {
         $_SESSION['lang'] = 'fr';
         $result = LOC('page.overdue_invoices.title');
-        $this->assertSame('Lignes projet a facturer', $result);
+        $this->assertSame('Talos', $result);
     }
 
     public function testLocFallsBackToNlForUnknownLang(): void

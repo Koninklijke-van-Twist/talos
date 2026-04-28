@@ -334,6 +334,34 @@
             border-color: #1a2a44;
         }
 
+        .search-bar {
+            background: #fff;
+            border: 1px solid #d0d7e2;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .search-bar input[type="search"] {
+            flex: 1;
+            border: 1px solid #c7ced9;
+            border-radius: 6px;
+            padding: 0.45rem 0.7rem;
+            font-size: 0.9rem;
+            color: #333;
+            background: #fafbfc;
+            outline: none;
+            min-width: 0;
+        }
+
+        .search-bar input[type="search"]:focus {
+            border-color: #1a2a44;
+            background: #fff;
+        }
+
         .amount {
             text-align: right;
             font-variant-numeric: tabular-nums;
@@ -579,6 +607,12 @@
                 <div class="status-filter-list" id="status-filter-list"></div>
             </div>
 
+            <div class="search-bar" id="search-bar">
+                <input type="search" id="table-search"
+                    placeholder="<?= h(LOC('filter.search_placeholder')) ?>"
+                    autocomplete="off">
+            </div>
+
             <?php if (!empty($pendingInvoiceLines)): ?>
                 <div class="summary">
                     <strong><?= h(LOC('section.overdue')) ?>:</strong>
@@ -603,18 +637,18 @@
                     <table>
                         <thead>
                             <tr>
-                                <th><?= h(LOC('table.job')) ?></th>
-                                <th><?= h(LOC('table.status')) ?></th>
-                                <th><?= h(LOC('table.description')) ?></th>
-                                <th><?= h(LOC('table.planning_date')) ?></th>
-                                <th><?= h(LOC('table.days_overdue')) ?></th>
-                                <th class="amount"><?= h(LOC('table.quantity_to_invoice')) ?></th>
-                                <th class="amount"><?= h(LOC('table.line_amount')) ?></th>
-                                <th><?= h(LOC('table.customer')) ?></th>
-                                <th><?= h(LOC('table.document_no')) ?></th>
-                                <th><?= h(LOC('table.work_order')) ?></th>
+                                <th data-col="job"><?= h(LOC('table.job')) ?></th>
+                                <th data-col="status"><?= h(LOC('table.status')) ?></th>
+                                <th data-col="description"><?= h(LOC('table.description')) ?></th>
+                                <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
+                                <th data-col="days"><?= h(LOC('table.days_overdue')) ?></th>
+                                <th data-col="qty" class="amount"><?= h(LOC('table.quantity_to_invoice')) ?></th>
+                                <th data-col="amount" class="amount"><?= h(LOC('table.line_amount')) ?></th>
+                                <th data-col="customer"><?= h(LOC('table.customer')) ?></th>
+                                <th data-col="document_no"><?= h(LOC('table.document_no')) ?></th>
+                                <th data-col="work_order"><?= h(LOC('table.work_order')) ?></th>
                                 <?php if ($showCompanyColumn): ?>
-                                    <th><?= h(LOC('table.company')) ?></th>
+                                    <th data-col="company"><?= h(LOC('table.company')) ?></th>
                                 <?php endif; ?>
                             </tr>
                         </thead>
@@ -657,18 +691,18 @@
                     <table>
                         <thead>
                             <tr>
-                                <th><?= h(LOC('table.job')) ?></th>
-                                <th><?= h(LOC('table.status')) ?></th>
-                                <th><?= h(LOC('table.description')) ?></th>
-                                <th><?= h(LOC('table.planning_date')) ?></th>
-                                <th><?= h(LOC('table.days_until_due')) ?></th>
-                                <th class="amount"><?= h(LOC('table.quantity_to_invoice')) ?></th>
-                                <th class="amount"><?= h(LOC('table.line_amount')) ?></th>
-                                <th><?= h(LOC('table.customer')) ?></th>
-                                <th><?= h(LOC('table.document_no')) ?></th>
-                                <th><?= h(LOC('table.work_order')) ?></th>
+                                <th data-col="job"><?= h(LOC('table.job')) ?></th>
+                                <th data-col="status"><?= h(LOC('table.status')) ?></th>
+                                <th data-col="description"><?= h(LOC('table.description')) ?></th>
+                                <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
+                                <th data-col="days"><?= h(LOC('table.days_until_due')) ?></th>
+                                <th data-col="qty" class="amount"><?= h(LOC('table.quantity_to_invoice')) ?></th>
+                                <th data-col="amount" class="amount"><?= h(LOC('table.line_amount')) ?></th>
+                                <th data-col="customer"><?= h(LOC('table.customer')) ?></th>
+                                <th data-col="document_no"><?= h(LOC('table.document_no')) ?></th>
+                                <th data-col="work_order"><?= h(LOC('table.work_order')) ?></th>
                                 <?php if ($showCompanyColumn): ?>
-                                    <th><?= h(LOC('table.company')) ?></th>
+                                    <th data-col="company"><?= h(LOC('table.company')) ?></th>
                                 <?php endif; ?>
                             </tr>
                         </thead>
@@ -753,8 +787,10 @@
             const jsonInspectorContentEl = document.getElementById('json-inspector-content');
             const statusFilterButtonsEl = document.getElementById('status-filter-buttons');
             const statusFilterListEl = document.getElementById('status-filter-list');
+            const searchInputEl = document.getElementById('table-search');
             const seenOverdueRowKeys = new Set();
             const seenUpcomingRowKeys = new Set();
+            const DYNAMIC_COLS = ['customer', 'document_no', 'work_order', 'company'];
 
             const config = {
                 hasError: <?= $odataError !== null ? 'true' : 'false' ?>,
@@ -945,6 +981,7 @@
             }
 
             const activeStatusFilters = new Set();
+            let activeSearchQuery = '';
             let knownStatuses = [];
 
             function escapeHtml (value)
@@ -1209,6 +1246,7 @@
                 if ((addedOverdue + addedUpcoming) > 0) {
                     syncStatusFiltersFromRows();
                     updateRowVisibilityBasedOnStatus();
+                    updateColumnVisibility();
                     bindRowInspector(overdueRowsEl);
                     bindRowInspector(upcomingRowsEl);
                 }
@@ -1254,6 +1292,7 @@
                 sortOverdueRowsByDaysDesc();
                 syncStatusFiltersFromRows();
                 updateRowVisibilityBasedOnStatus();
+                updateColumnVisibility();
 
                 setLoadingRowVisibility(true);
 
@@ -1315,6 +1354,15 @@
                 }
             });
 
+            function rowMatchesSearch (row)
+            {
+                if (activeSearchQuery === '') {
+                    return true;
+                }
+
+                return row.textContent.toLowerCase().indexOf(activeSearchQuery) !== -1;
+            }
+
             function updateRowVisibilityBasedOnStatus ()
             {
                 if (!overdueRowsEl && !upcomingRowsEl) {
@@ -1332,20 +1380,46 @@
                     {
                         const statusCell = row.querySelector('[data-status]');
                         if (!statusCell) {
-                            row.style.display = '';
+                            row.style.display = rowMatchesSearch(row) ? '' : 'none';
                             return;
                         }
 
                         const status = String(statusCell.getAttribute('data-status') || '');
-                        if (activeStatusFilters.has(status)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
+                        const passesStatus = activeStatusFilters.has(status);
+                        const passesSearch = rowMatchesSearch(row);
+                        row.style.display = (passesStatus && passesSearch) ? '' : 'none';
                     });
                 });
 
                 updateAllSummaries();
+            }
+
+            function updateColumnVisibility ()
+            {
+                const allTbodies = [overdueRowsEl, upcomingRowsEl].filter(Boolean);
+                DYNAMIC_COLS.forEach(function (col)
+                {
+                    let hasData = false;
+                    allTbodies.forEach(function (tbody)
+                    {
+                        if (hasData) {
+                            return;
+                        }
+
+                        const cells = tbody.querySelectorAll('tr[data-row-key] td[data-col="' + col + '"]');
+                        cells.forEach(function (cell)
+                        {
+                            if (cell.textContent.trim() !== '') {
+                                hasData = true;
+                            }
+                        });
+                    });
+
+                    document.querySelectorAll('[data-col="' + col + '"]').forEach(function (el)
+                    {
+                        el.style.display = hasData ? '' : 'none';
+                    });
+                });
             }
 
             function bindStatusFilterButtons ()
@@ -1400,6 +1474,20 @@
             bindStatusFilterButtons();
             bindRowInspector(overdueRowsEl);
             bindRowInspector(upcomingRowsEl);
+
+            let searchDebounceTimer = null;
+            if (searchInputEl)
+            {
+                searchInputEl.addEventListener('input', function ()
+                {
+                    clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(function ()
+                    {
+                        activeSearchQuery = searchInputEl.value.toLowerCase().trim();
+                        updateRowVisibilityBasedOnStatus();
+                    }, 200);
+                });
+            }
 
             runStream();
         })();
