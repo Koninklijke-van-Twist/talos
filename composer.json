@@ -1,0 +1,17 @@
+{
+    "name": "kvt/talos",
+    "description": "Talos – KVT werkorderbeheer",
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload-dev": {
+        "files": [
+            "web/content/localization.php",
+            "web/content/helpers.php"
+        ]
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}

@@ -1,0 +1,328 @@
+<?php
+
+const FLAG_SVGS = [
+    'nl' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600"><rect width="900" height="600" fill="#AE1C28"/><rect width="900" height="400" fill="#fff"/><rect width="900" height="200" fill="#fff"/><rect width="900" height="200" y="0" fill="#AE1C28"/><rect width="900" height="200" y="200" fill="#fff"/><rect width="900" height="200" y="400" fill="#21468B"/></svg>',
+    'en' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40"><clipPath id="a"><path d="M0 0v40h60V0z"/></clipPath><clipPath id="b"><path d="M30 20h30v20zv20H0zH0V0zV0h30z"/></clipPath><g clip-path="url(#a)"><path d="M0 0v40h60V0z" fill="#012169"/><path d="M0 0l60 40m0-40L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40m0-40L0 40" clip-path="url(#b)" stroke="#C8102E" stroke-width="5"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13"/><path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="8"/></g></svg>',
+    'de' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3"><rect width="5" height="3" y="0" fill="#000"/><rect width="5" height="2" y="1" fill="#D00"/><rect width="5" height="1" y="2" fill="#FFCE00"/></svg>',
+    'fr' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600"><rect width="900" height="600" fill="#ED2939"/><rect width="600" height="600" fill="#fff"/><rect width="300" height="600" fill="#002395"/></svg>',
+];
+const SUPPORTED_LANGUAGES = [
+    'nl' => ['flag' => '🇳🇱', 'label' => 'Nederlands'],
+    'en' => ['flag' => '🇬🇧', 'label' => 'English'],
+    'de' => ['flag' => '🇩🇪', 'label' => 'Deutsch'],
+    'fr' => ['flag' => '🇫🇷', 'label' => 'Français'],
+];
+
+/**
+ * Constants
+ */
+
+const TRANSLATIONS = [
+    'nl' => [
+        'page.overdue_invoices.title' => 'Talos',
+        'page.overdue_invoices.heading' => 'Talos',
+        'table.invoice_no' => 'Factuurnummer',
+        'table.vendor' => 'Leverancier',
+        'table.document_date' => 'Factuurdatum',
+        'table.due_date' => 'Vervaldatum',
+        'table.days_overdue' => 'Dagen te laat',
+        'table.remaining_amount' => 'Openstaand bedrag',
+        'table.job' => 'Project',
+        'table.company' => 'Bedrijf',
+        'table.description' => 'Omschrijving',
+        'table.planning_date' => 'Planningsdatum',
+        'table.quantity_to_invoice' => 'Nog te factureren',
+        'table.line_amount' => 'Bedrag',
+        'table.customer' => 'Klant',
+        'table.document_no' => 'Document',
+        'table.work_order' => 'Werkorder',
+        'table.status' => 'Status',
+        'table.days_until_due' => 'Dagen tot achterstallig',
+        'section.overdue' => 'Achterstallig',
+        'section.upcoming' => 'Binnenkort achterstallig',
+        'section.upcoming_week' => 'komende week',
+        'section.upcoming_month' => 'komende maand',
+        'section.upcoming_year' => 'komend jaar',
+        'section.week_batch_window' => 'weekbatch %s t/m %s',
+        'section.all_rules' => 'alle regels',
+        'summary.total' => 'Totaal',
+        'summary.rule_singular' => 'regel',
+        'summary.rule_plural' => 'regels',
+        'summary.amount' => 'bedrag',
+        'filter.company' => 'Bedrijf',
+        'filter.apply' => 'Toon',
+        'filter.all_companies' => 'Alle bedrijven',
+        'filter.status' => 'Status',
+        'filter.status_all' => 'Alle statussen',
+        'status.open' => 'Open',
+        'status.checked' => 'Gecontroleerd',
+        'status.planned' => 'Gepland',
+        'debug.fetch_all_rules_enabled' => 'Debug actief: regels worden nu zonder OData-filter opgehaald.',
+        'debug.company_fetch_summary' => 'Bedrijven OK: %d, fouten: %d, opgehaalde regels: %d, zonder Planning_Date: %d',
+        'debug.company_fetch_ok' => '[OK] %s: %d regels',
+        'debug.company_fetch_error' => '[FOUT] %s: %s',
+        'msg.no_overdue_invoices' => 'Er zijn geen achterstallige te factureren projectregels.',
+        'msg.partial_results' => 'Resultaat is in kleine batches geladen (%d per call, %d/%d calls gebruikt). Gebruik Volgende voor meer regels.',
+        'msg.stream_loading' => 'Live aanvullen bezig... batch %d laden.',
+        'msg.stream_done' => 'Live aanvullen afgerond.',
+        'msg.stream_failed' => 'Live aanvullen gestopt door fout.',
+        'msg.stream_no_more' => 'Geen extra batches meer gevonden.',
+        'msg.stream_batch_title' => 'Aanvulling batch %d',
+        'msg.stream_overdue_block' => 'Achterstallig (batch)',
+        'msg.stream_upcoming_block' => 'Binnenkort/overig (batch)',
+        'msg.stream_table_loading' => 'Bezig met laden van extra regels...',
+        'msg.stream_table_done' => 'Alle batches zijn ingeladen.',
+        'msg.stream_table_failed' => 'Laden gestopt door fout.',
+        'pager.page' => 'Pagina %d',
+        'pager.prev' => 'Vorige',
+        'pager.next' => 'Volgende',
+        'error.odata_failed' => 'Fout bij ophalen van projectfacturatiegegevens. Probeer het later opnieuw.',
+        'reminder.subject' => 'Overzicht te factureren projectregels',
+        'reminder.intro' => 'Hieronder een overzicht van de achterstallige te factureren projectregels per %s.',
+        'reminder.footer' => 'Dit bericht is automatisch gegenereerd door Talos.',
+        'reminder.success' => 'Herinneringen zijn succesvol verzonden naar %d ontvanger(s).',
+        'reminder.no_invoices' => 'Geen achterstallige te factureren projectregels gevonden, er zijn geen e-mails verzonden.',
+    ],
+    'en' => [
+        'page.overdue_invoices.title' => 'Project lines pending invoicing',
+        'page.overdue_invoices.heading' => 'Project lines pending invoicing',
+        'table.invoice_no' => 'Invoice number',
+        'table.vendor' => 'Vendor',
+        'table.document_date' => 'Invoice date',
+        'table.due_date' => 'Due date',
+        'table.days_overdue' => 'Days overdue',
+        'table.remaining_amount' => 'Remaining amount',
+        'table.job' => 'Project',
+        'table.company' => 'Company',
+        'table.description' => 'Description',
+        'table.planning_date' => 'Planning date',
+        'table.quantity_to_invoice' => 'To invoice',
+        'table.line_amount' => 'Amount',
+        'table.customer' => 'Customer',
+        'table.document_no' => 'Document',
+        'table.work_order' => 'Work order',
+        'table.status' => 'Status',
+        'table.days_until_due' => 'Days until overdue',
+        'section.overdue' => 'Overdue',
+        'section.upcoming' => 'Becoming overdue soon',
+        'section.upcoming_week' => 'coming week',
+        'section.upcoming_month' => 'coming month',
+        'section.upcoming_year' => 'coming year',
+        'section.week_batch_window' => 'week batch %s through %s',
+        'section.all_rules' => 'all rules',
+        'summary.total' => 'Total',
+        'summary.rule_singular' => 'line',
+        'summary.rule_plural' => 'lines',
+        'summary.amount' => 'amount',
+        'filter.company' => 'Company',
+        'filter.apply' => 'Show',
+        'filter.all_companies' => 'All companies',
+        'filter.status' => 'Status',
+        'filter.status_all' => 'All statuses',
+        'status.open' => 'Open',
+        'status.checked' => 'Checked',
+        'status.planned' => 'Planned',
+        'debug.fetch_all_rules_enabled' => 'Debug enabled: rules are currently fetched without OData filters.',
+        'debug.company_fetch_summary' => 'Companies OK: %d, failed: %d, fetched rows: %d, without Planning_Date: %d',
+        'debug.company_fetch_ok' => '[OK] %s: %d rows',
+        'debug.company_fetch_error' => '[ERROR] %s: %s',
+        'msg.no_overdue_invoices' => 'There are no overdue project lines pending invoicing.',
+        'msg.partial_results' => 'Results were loaded in small batches (%d per call, %d/%d calls used). Use Next for more lines.',
+        'msg.stream_loading' => 'Live fill in progress... loading batch %d.',
+        'msg.stream_done' => 'Live fill completed.',
+        'msg.stream_failed' => 'Live fill stopped due to an error.',
+        'msg.stream_no_more' => 'No additional batches found.',
+        'msg.stream_batch_title' => 'Incremental batch %d',
+        'msg.stream_overdue_block' => 'Overdue (batch)',
+        'msg.stream_upcoming_block' => 'Upcoming/other (batch)',
+        'msg.stream_table_loading' => 'Loading additional rows...',
+        'msg.stream_table_done' => 'All batches have been loaded.',
+        'msg.stream_table_failed' => 'Loading stopped due to an error.',
+        'pager.page' => 'Page %d',
+        'pager.prev' => 'Previous',
+        'pager.next' => 'Next',
+        'error.odata_failed' => 'Error retrieving project invoicing data. Please try again later.',
+        'reminder.subject' => 'Overview project lines pending invoicing',
+        'reminder.intro' => 'Below is an overview of the overdue project lines pending invoicing as of %s.',
+        'reminder.footer' => 'This message was automatically generated by Talos.',
+        'reminder.success' => 'Reminders have been successfully sent to %d recipient(s).',
+        'reminder.no_invoices' => 'No overdue project lines pending invoicing were found, no e-mails were sent.',
+    ],
+    'de' => [
+        'page.overdue_invoices.title' => 'Abzurechnende Projektzeilen',
+        'page.overdue_invoices.heading' => 'Abzurechnende Projektzeilen',
+        'table.invoice_no' => 'Rechnungsnummer',
+        'table.vendor' => 'Lieferant',
+        'table.document_date' => 'Rechnungsdatum',
+        'table.due_date' => 'Faelligkeitsdatum',
+        'table.days_overdue' => 'Tage zu spaet',
+        'table.remaining_amount' => 'Offener Betrag',
+        'table.job' => 'Projekt',
+        'table.company' => 'Unternehmen',
+        'table.description' => 'Beschreibung',
+        'table.planning_date' => 'Planungsdatum',
+        'table.quantity_to_invoice' => 'Abzurechnen',
+        'table.line_amount' => 'Betrag',
+        'table.customer' => 'Kunde',
+        'table.document_no' => 'Dokument',
+        'table.work_order' => 'Arbeitsauftrag',
+        'table.status' => 'Status',
+        'table.days_until_due' => 'Tage bis ueberfaellig',
+        'section.overdue' => 'Ueberfaellig',
+        'section.upcoming' => 'Bald ueberfaellig',
+        'section.upcoming_week' => 'kommende Woche',
+        'section.upcoming_month' => 'kommender Monat',
+        'section.upcoming_year' => 'kommendes Jahr',
+        'section.week_batch_window' => 'Wochenpaket %s bis %s',
+        'section.all_rules' => 'alle Regeln',
+        'summary.total' => 'Gesamt',
+        'summary.rule_singular' => 'Zeile',
+        'summary.rule_plural' => 'Zeilen',
+        'summary.amount' => 'Betrag',
+        'filter.company' => 'Unternehmen',
+        'filter.apply' => 'Anzeigen',
+        'filter.all_companies' => 'Alle Unternehmen',
+        'filter.status' => 'Status',
+        'filter.status_all' => 'Alle Status',
+        'status.open' => 'Offen',
+        'status.checked' => 'Geprueft',
+        'status.planned' => 'Geplant',
+        'debug.fetch_all_rules_enabled' => 'Debug aktiv: Regeln werden aktuell ohne OData-Filter geladen.',
+        'debug.company_fetch_summary' => 'Unternehmen OK: %d, Fehler: %d, geladene Zeilen: %d, ohne Planning_Date: %d',
+        'debug.company_fetch_ok' => '[OK] %s: %d Zeilen',
+        'debug.company_fetch_error' => '[FEHLER] %s: %s',
+        'msg.no_overdue_invoices' => 'Es gibt keine ueberfaelligen abzurechnenden Projektzeilen.',
+        'msg.partial_results' => 'Ergebnis wurde in kleinen Paketen geladen (%d pro Call, %d/%d Calls genutzt). Mit Weiter laden Sie mehr Zeilen.',
+        'msg.stream_loading' => 'Live-Nachladen aktiv... Paket %d wird geladen.',
+        'msg.stream_done' => 'Live-Nachladen abgeschlossen.',
+        'msg.stream_failed' => 'Live-Nachladen wegen Fehler gestoppt.',
+        'msg.stream_no_more' => 'Keine weiteren Pakete gefunden.',
+        'msg.stream_batch_title' => 'Nachladepaket %d',
+        'msg.stream_overdue_block' => 'Ueberfaellig (Paket)',
+        'msg.stream_upcoming_block' => 'Bald/sonstiges (Paket)',
+        'msg.stream_table_loading' => 'Weitere Zeilen werden geladen...',
+        'msg.stream_table_done' => 'Alle Pakete wurden geladen.',
+        'msg.stream_table_failed' => 'Laden wegen Fehler gestoppt.',
+        'pager.page' => 'Seite %d',
+        'pager.prev' => 'Zurueck',
+        'pager.next' => 'Weiter',
+        'error.odata_failed' => 'Fehler beim Abrufen der Projektabrechnungsdaten. Bitte versuchen Sie es spaeter erneut.',
+        'reminder.subject' => 'Uebersicht abzurechnender Projektzeilen',
+        'reminder.intro' => 'Nachfolgend eine Uebersicht der ueberfaelligen abzurechnenden Projektzeilen per %s.',
+        'reminder.footer' => 'Diese Nachricht wurde automatisch von Talos generiert.',
+        'reminder.success' => 'Erinnerungen wurden erfolgreich an %d Empfaenger gesendet.',
+        'reminder.no_invoices' => 'Keine ueberfaelligen abzurechnenden Projektzeilen gefunden, es wurden keine E-Mails gesendet.',
+    ],
+    'fr' => [
+        'page.overdue_invoices.title' => 'Lignes projet a facturer',
+        'page.overdue_invoices.heading' => 'Lignes projet a facturer',
+        'table.invoice_no' => 'Numero de facture',
+        'table.vendor' => 'Fournisseur',
+        'table.document_date' => 'Date de facture',
+        'table.due_date' => 'Date d echeance',
+        'table.days_overdue' => 'Jours de retard',
+        'table.remaining_amount' => 'Montant restant',
+        'table.job' => 'Projet',
+        'table.company' => 'Societe',
+        'table.description' => 'Description',
+        'table.planning_date' => 'Date planning',
+        'table.quantity_to_invoice' => 'A facturer',
+        'table.line_amount' => 'Montant',
+        'table.customer' => 'Client',
+        'table.document_no' => 'Document',
+        'table.work_order' => 'Ordre',
+        'table.status' => 'Statut',
+        'table.days_until_due' => 'Jours avant retard',
+        'section.overdue' => 'En retard',
+        'section.upcoming' => 'Bientot en retard',
+        'section.upcoming_week' => 'semaine a venir',
+        'section.upcoming_month' => 'mois a venir',
+        'section.upcoming_year' => 'annee a venir',
+        'section.week_batch_window' => 'lot hebdomadaire %s a %s',
+        'section.all_rules' => 'toutes les lignes',
+        'summary.total' => 'Total',
+        'summary.rule_singular' => 'ligne',
+        'summary.rule_plural' => 'lignes',
+        'summary.amount' => 'montant',
+        'filter.company' => 'Societe',
+        'filter.apply' => 'Afficher',
+        'filter.all_companies' => 'Toutes les societes',
+        'filter.status' => 'Statut',
+        'filter.status_all' => 'Tous les statuts',
+        'status.open' => 'Ouvert',
+        'status.checked' => 'Verifie',
+        'status.planned' => 'Prevu',
+        'debug.fetch_all_rules_enabled' => 'Debug actif : les lignes sont chargees sans filtres OData.',
+        'debug.company_fetch_summary' => 'Societes OK : %d, en erreur : %d, lignes chargees : %d, sans Planning_Date : %d',
+        'debug.company_fetch_ok' => '[OK] %s : %d lignes',
+        'debug.company_fetch_error' => '[ERREUR] %s : %s',
+        'msg.no_overdue_invoices' => 'Aucune ligne projet en retard a facturer.',
+        'msg.partial_results' => 'Le resultat est charge par petits lots (%d par appel, %d/%d appels utilises). Utilisez Suivant pour plus de lignes.',
+        'msg.stream_loading' => 'Chargement progressif en cours... lot %d en cours.',
+        'msg.stream_done' => 'Chargement progressif termine.',
+        'msg.stream_failed' => 'Chargement progressif arrete suite a une erreur.',
+        'msg.stream_no_more' => 'Aucun lot supplementaire trouve.',
+        'msg.stream_batch_title' => 'Lot incremental %d',
+        'msg.stream_overdue_block' => 'En retard (lot)',
+        'msg.stream_upcoming_block' => 'A venir/autre (lot)',
+        'msg.stream_table_loading' => 'Chargement des lignes supplementaires...',
+        'msg.stream_table_done' => 'Tous les lots sont charges.',
+        'msg.stream_table_failed' => 'Chargement arrete suite a une erreur.',
+        'pager.page' => 'Page %d',
+        'pager.prev' => 'Precedent',
+        'pager.next' => 'Suivant',
+        'error.odata_failed' => 'Erreur lors de la recuperation des donnees de facturation projet. Veuillez reessayer plus tard.',
+        'reminder.subject' => 'Apercu des lignes projet a facturer',
+        'reminder.intro' => 'Vous trouverez ci-dessous un apercu des lignes projet en retard a facturer au %s.',
+        'reminder.footer' => 'Ce message a ete genere automatiquement par Talos.',
+        'reminder.success' => 'Les rappels ont ete envoyes avec succes a %d destinataire(s).',
+        'reminder.no_invoices' => 'Aucune ligne projet en retard a facturer, aucun e-mail n a ete envoye.',
+    ],
+];
+
+/**
+ * Functies
+ */
+
+function getCurrentLanguage(): string
+{
+    $allowed = ['nl', 'en', 'de', 'fr'];
+
+    if (isset($_GET['lang'])) {
+        $requestedLang = trim((string) $_GET['lang']);
+        if (in_array($requestedLang, $allowed, true)) {
+            $userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
+            if (!isset($_SESSION['lang_by_user']) || !is_array($_SESSION['lang_by_user'])) {
+                $_SESSION['lang_by_user'] = [];
+            }
+
+            $_SESSION['lang_by_user'][$userKey] = $requestedLang;
+            // Backward compatibility for existing code/tests that read $_SESSION['lang'].
+            $_SESSION['lang'] = $requestedLang;
+        }
+    }
+
+    $userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
+    $userLang = (string) ($_SESSION['lang_by_user'][$userKey] ?? '');
+    if (in_array($userLang, $allowed, true)) {
+        return $userLang;
+    }
+
+    $legacyLang = (string) ($_SESSION['lang'] ?? 'nl');
+    return in_array($legacyLang, $allowed, true) ? $legacyLang : 'nl';
+}
+
+function getLanguageFlagSvg(string $language): string
+{
+    return (string) (FLAG_SVGS[$language] ?? FLAG_SVGS['nl']);
+}
+
+function LOC(string $key, ...$args): string
+{
+    $lang = getCurrentLanguage();
+    $string = TRANSLATIONS[$lang][$key] ?? TRANSLATIONS['nl'][$key] ?? $key;
+    if (!empty($args)) {
+        return sprintf($string, ...$args);
+    }
+    return $string;
+}
