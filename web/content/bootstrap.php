@@ -29,7 +29,7 @@ function talosErrorTypeToString(int $type): string
 function talosGetErrorDumpDir(): ?string
 {
     $candidates = [
-        __DIR__ . '/../data/php_errors',
+        __DIR__ . '/data/php_errors',
         __DIR__ . '/errors/php_errors',
         rtrim(sys_get_temp_dir(), '\\/') . '/talos_php_errors',
     ];
