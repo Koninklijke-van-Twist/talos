@@ -84,8 +84,8 @@ const TRANSLATIONS = [
         'reminder.no_invoices' => 'Geen achterstallige te factureren projectregels gevonden, er zijn geen e-mails verzonden.',
     ],
     'en' => [
-        'page.overdue_invoices.title' => 'Project lines pending invoicing',
-        'page.overdue_invoices.heading' => 'Project lines pending invoicing',
+        'page.overdue_invoices.title' => 'Talos',
+        'page.overdue_invoices.heading' => 'Talos',
         'table.invoice_no' => 'Invoice number',
         'table.vendor' => 'Vendor',
         'table.document_date' => 'Invoice date',
@@ -149,8 +149,8 @@ const TRANSLATIONS = [
         'reminder.no_invoices' => 'No overdue project lines pending invoicing were found, no e-mails were sent.',
     ],
     'de' => [
-        'page.overdue_invoices.title' => 'Abzurechnende Projektzeilen',
-        'page.overdue_invoices.heading' => 'Abzurechnende Projektzeilen',
+        'page.overdue_invoices.title' => 'Talos',
+        'page.overdue_invoices.heading' => 'Talos',
         'table.invoice_no' => 'Rechnungsnummer',
         'table.vendor' => 'Lieferant',
         'table.document_date' => 'Rechnungsdatum',
@@ -214,8 +214,8 @@ const TRANSLATIONS = [
         'reminder.no_invoices' => 'Keine ueberfaelligen abzurechnenden Projektzeilen gefunden, es wurden keine E-Mails gesendet.',
     ],
     'fr' => [
-        'page.overdue_invoices.title' => 'Lignes projet a facturer',
-        'page.overdue_invoices.heading' => 'Lignes projet a facturer',
+        'page.overdue_invoices.title' => 'Talos',
+        'page.overdue_invoices.heading' => 'Talos',
         'table.invoice_no' => 'Numero de facture',
         'table.vendor' => 'Fournisseur',
         'table.document_date' => 'Date de facture',
