@@ -54,4 +54,29 @@ class ProjectBillingTest extends TestCase
         $selectValue = explode('&', (string) $selectPart[1], 2)[0];
         $this->assertStringContainsString('User_ID', $selectValue);
     }
+
+    public function testIsSapImportDescriptionMatchesRequiredPattern(): void
+    {
+        $this->assertTrue(isSapImportDescription('IMPORT SAP iets JAAR 2026'));
+        $this->assertFalse(isSapImportDescription('import sap iets JAAR 2026'));
+        $this->assertFalse(isSapImportDescription('IMPORT SAP iets JAAR ABCD'));
+        $this->assertFalse(isSapImportDescription('IMPORT SAP iets JAAR 2026 extra'));
+    }
+
+    public function testFilterSapImportRowsOnlyRemovesMatchingRowsWhenEnabled(): void
+    {
+        $rows = [
+            ['Description' => 'IMPORT SAP order JAAR 2024'],
+            ['Description' => 'IMPORT SAP order JAAR 2024 EXTRA'],
+            ['Description' => 'Reguliere regel'],
+        ];
+
+        $filtered = filterSapImportRows($rows, true);
+        $this->assertCount(2, $filtered);
+        $this->assertSame('IMPORT SAP order JAAR 2024 EXTRA', (string) $filtered[0]['Description']);
+        $this->assertSame('Reguliere regel', (string) $filtered[1]['Description']);
+
+        $unfiltered = filterSapImportRows($rows, false);
+        $this->assertCount(3, $unfiltered);
+    }
 }

@@ -7,6 +7,7 @@
 $today = date('Y-m-d');
 $showOdataErrorDetails = isset($_GET['debug_odata']) && (string) $_GET['debug_odata'] === '1';
 $debugFetchAllRules = isset($_GET['debug_all_rules']) && (string) $_GET['debug_all_rules'] === '1';
+$hideSapImports = !isset($_GET['hide_sap_imports']) || (string) $_GET['hide_sap_imports'] !== '0';
 $userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
 if (!isset($_SESSION['selected_company_by_user']) || !is_array($_SESSION['selected_company_by_user'])) {
     $_SESSION['selected_company_by_user'] = [];
@@ -27,7 +28,7 @@ if ($isAllCompaniesSelection) {
  */
 
 try {
-    $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules);
+    $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
     $availableCompanies = $buckets['available_companies'] ?? [];
 
     $needsRefetch = false;
@@ -41,7 +42,7 @@ try {
     }
 
     if ($needsRefetch) {
-        $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules);
+        $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
         $availableCompanies = $buckets['available_companies'] ?? [];
     }
 

@@ -171,6 +171,21 @@
             cursor: pointer;
         }
 
+        .filters .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 600;
+            color: #1a2a44;
+            margin-left: 0.25rem;
+        }
+
+        .filters .checkbox-label input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            margin: 0;
+        }
+
         .pager {
             margin-top: 0.75rem;
             display: flex;
@@ -547,6 +562,11 @@
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <input type="hidden" name="hide_sap_imports" value="0">
+                <label for="hide-sap-imports" class="checkbox-label">
+                    <input type="checkbox" id="hide-sap-imports" name="hide_sap_imports" value="1" <?= !empty($hideSapImports) ? 'checked' : '' ?>>
+                    <?= h(LOC('filter.hide_sap_imports')) ?>
+                </label>
                 <?php if (!empty($showOdataErrorDetails)): ?>
                     <input type="hidden" name="debug_odata" value="1">
                 <?php endif; ?>
@@ -736,6 +756,9 @@
             if (!empty($debugFetchAllRules)) {
                 $queryBase['debug_all_rules'] = '1';
             }
+            if (empty($hideSapImports)) {
+                $queryBase['hide_sap_imports'] = '0';
+            }
             $prevQuery = $queryBase;
             $prevQuery['page'] = max(1, (int) $currentPage - 1);
             $nextQuery = $queryBase;
@@ -801,6 +824,7 @@
                 company: <?= json_encode($selectedCompany === '' ? '__all__' : $selectedCompany, JSON_UNESCAPED_UNICODE) ?>,
                 debugOdata: <?= !empty($showOdataErrorDetails) ? 'true' : 'false' ?>,
                 debugAllRules: <?= !empty($debugFetchAllRules) ? 'true' : 'false' ?>,
+                hideSapImports: <?= !empty($hideSapImports) ? 'true' : 'false' ?>,
                 startPage: <?= (int) $currentPage + 1 ?>,
                 maxPagesToLoad: 250,
                 failedText: <?= json_encode(LOC('msg.stream_table_failed'), JSON_UNESCAPED_UNICODE) ?>,
@@ -1269,6 +1293,10 @@
                 if (config.debugAllRules)
                 {
                     params.set('debug_all_rules', '1');
+                }
+                if (!config.hideSapImports)
+                {
+                    params.set('hide_sap_imports', '0');
                 }
 
                 const response = await fetch(config.endpoint + '?' + params.toString(), {

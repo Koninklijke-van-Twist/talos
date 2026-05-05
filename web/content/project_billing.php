@@ -52,6 +52,23 @@ function buildWeeklyWindows(string $startDate, string $endDate): array
     return $windows;
 }
 
+function isSapImportDescription(string $description): bool
+{
+    $value = trim($description);
+    return preg_match('/^IMPORT SAP.*JAAR [0-9]{4}$/', $value) === 1;
+}
+
+function filterSapImportRows(array $rows, bool $hideSapImports): array
+{
+    if (!$hideSapImports) {
+        return $rows;
+    }
+
+    return array_values(array_filter($rows, static function (array $row): bool {
+        return !isSapImportDescription((string) ($row['Description'] ?? ''));
+    }));
+}
+
 function fetchProjectInvoiceRowsForCompanyWindow(
     string $baseUrl,
     string $environment,
@@ -104,6 +121,7 @@ function mergeCompanyRowsForWindow(
     ?string $endDate,
     bool $debugFetchAllRules,
     int $skip,
+    bool $hideSapImports,
     array &$debugCompanyResults,
     ?string &$firstErrorMessage,
     int &$callCount,
@@ -153,6 +171,7 @@ function mergeCompanyRowsForWindow(
         }
     }
 
+    $windowRows = filterSapImportRows($windowRows, $hideSapImports);
     sortRowsByPlanningDate($windowRows);
     return $windowRows;
 }
@@ -189,9 +208,9 @@ function fetchAvailableCompanyNames(string $baseUrl, string $environment, array 
     return $names;
 }
 
-function fetchPendingProjectInvoiceLines(string $baseUrl, string $environment, array $auth, string $today): array
+function fetchPendingProjectInvoiceLines(string $baseUrl, string $environment, array $auth, string $today, bool $hideSapImports = true): array
 {
-    $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, null);
+    $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, null, false, $hideSapImports);
     return $buckets['overdue'];
 }
 
@@ -201,7 +220,8 @@ function fetchProjectInvoiceBuckets(
     array $auth,
     string $today,
     ?string $selectedCompany = null,
-    bool $debugFetchAllRules = false
+    bool $debugFetchAllRules = false,
+    bool $hideSapImports = true
 ): array {
     $availableCompanies = fetchAvailableCompanyNames($baseUrl, $environment, $auth);
 
@@ -240,6 +260,7 @@ function fetchProjectInvoiceBuckets(
             null,
             $debugFetchAllRules,
             $skip,
+            $hideSapImports,
             $debugCompanyResults,
             $firstErrorMessage,
             $callCount,
@@ -278,6 +299,7 @@ function fetchProjectInvoiceBuckets(
             $overdueEnd,
             false,
             $skip,
+            $hideSapImports,
             $debugCompanyResults,
             $firstErrorMessage,
             $callCount,
@@ -293,6 +315,7 @@ function fetchProjectInvoiceBuckets(
             $weekEnd,
             false,
             $skip,
+            $hideSapImports,
             $debugCompanyResults,
             $firstErrorMessage,
             $callCount,
@@ -316,6 +339,7 @@ function fetchProjectInvoiceBuckets(
                     $window[1],
                     false,
                     $skip,
+                    $hideSapImports,
                     $debugCompanyResults,
                     $firstErrorMessage,
                     $callCount,
@@ -346,6 +370,7 @@ function fetchProjectInvoiceBuckets(
                     $window[1],
                     false,
                     $skip,
+                    $hideSapImports,
                     $debugCompanyResults,
                     $firstErrorMessage,
                     $callCount,
@@ -378,6 +403,7 @@ function fetchProjectInvoiceBuckets(
                     $windowEnd,
                     false,
                     $skip,
+                    $hideSapImports,
                     $debugCompanyResults,
                     $firstErrorMessage,
                     $callCount,

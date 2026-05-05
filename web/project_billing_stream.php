@@ -54,6 +54,7 @@ function selectUpcomingBucket(array $buckets): array
 $today = date('Y-m-d');
 $debugFetchAllRules = isset($_GET['debug_all_rules']) && (string) $_GET['debug_all_rules'] === '1';
 $showOdataErrorDetails = isset($_GET['debug_odata']) && (string) $_GET['debug_odata'] === '1';
+$hideSapImports = !isset($_GET['hide_sap_imports']) || (string) $_GET['hide_sap_imports'] !== '0';
 $requestedCompany = trim((string) ($_GET['company'] ?? ''));
 $selectedCompany = $requestedCompany === '__all__' ? '' : $requestedCompany;
 $includeCompanyColumn = $selectedCompany === '';
@@ -73,7 +74,8 @@ try {
         $auth,
         $today,
         $selectedCompany,
-        $debugFetchAllRules
+        $debugFetchAllRules,
+        $hideSapImports
     );
 
     $upcoming = selectUpcomingBucket($buckets);
