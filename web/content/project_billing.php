@@ -11,7 +11,7 @@ const PROJECT_BILLING_MAX_CALLS_PER_REQUEST = 40;
 
 function buildProjectInvoiceSelectClause(): string
 {
-    return 'Job_No,Line_No,Planning_Date,Description,Document_No,Qty_to_Invoice,Line_Amount,LVS_Bill_to_Customer_No,KVT_Bill_To_Cust_No_WO,LVS_Work_Order_No,KVT_Memo_Invoice,KVT_Status_Work_Order';
+    return 'Job_No,Line_No,Planning_Date,Description,Document_No,Qty_to_Invoice,Line_Amount,LVS_Bill_to_Customer_No,KVT_Bill_To_Cust_No_WO,LVS_Work_Order_No,KVT_Memo_Invoice,KVT_Status_Work_Order,User_ID';
 }
 
 function appendCompanyToRows(array $rows, string $companyName): array
@@ -74,6 +74,7 @@ function fetchProjectInvoiceRowsForCompanyWindow(
 
     if (!$debugFetchAllRules) {
         $filters = ['Qty_to_Invoice gt 0'];
+        $filters[] = '(No eq 800000 or No eq 800001)';
         // Standard BC option values for Work Order status.
         $filters[] = "(KVT_Status_Work_Order eq 'Open' or KVT_Status_Work_Order eq 'Planned' or KVT_Status_Work_Order eq 'Checked')";
         if ($startDate !== null && $startDate !== '') {

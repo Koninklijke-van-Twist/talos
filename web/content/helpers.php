@@ -115,6 +115,32 @@ function renderStatusBadge(string $status): string
     return '<span class="badge-status ' . h($class) . '" data-status="' . h($status) . '">' . h($status) . '</span>';
 }
 
+function extractAccountManagerFromUserId(string $userId): string
+{
+    $value = trim($userId);
+    if ($value === '') {
+        return '';
+    }
+
+    $backslashPos = strrpos($value, '\\');
+    $slashPos = strrpos($value, '/');
+    $separatorPos = false;
+
+    if ($backslashPos !== false && $slashPos !== false) {
+        $separatorPos = max($backslashPos, $slashPos);
+    } elseif ($backslashPos !== false) {
+        $separatorPos = $backslashPos;
+    } elseif ($slashPos !== false) {
+        $separatorPos = $slashPos;
+    }
+
+    if ($separatorPos === false) {
+        return $value;
+    }
+
+    return substr($value, $separatorPos + 1);
+}
+
 function renderInvoiceTableRow(
     array $line,
     bool $isOverdue,
@@ -167,10 +193,12 @@ function renderInvoiceTableRow(
 
     $status = (string) (($line['KVT_Status_Work_Order'] ?? '') !== '' ? ($line['KVT_Status_Work_Order'] ?? '') : ($line['Status'] ?? 'Open'));
     $statusBadge = renderStatusBadge($status);
+    $accountManager = extractAccountManagerFromUserId((string) ($line['User_ID'] ?? ''));
 
     $html = '<tr ' . $rowAttributes . $rowClass . '>'
         . '<td data-col="job">' . h($jobNo) . '</td>'
         . '<td data-col="status">' . $statusBadge . '</td>'
+        . '<td data-col="accountmanager">' . h($accountManager) . '</td>'
         . '<td data-col="description">' . h((string) ($line['Description'] ?? '')) . '</td>'
         . '<td data-col="planning_date">' . h(formatDate($planningDateRaw)) . '</td>'
         . '<td data-col="days">' . $badge . '</td>'

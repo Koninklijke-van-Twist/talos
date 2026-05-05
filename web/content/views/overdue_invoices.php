@@ -639,6 +639,7 @@
                             <tr>
                                 <th data-col="job"><?= h(LOC('table.job')) ?></th>
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
+                                <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_overdue')) ?></th>
@@ -657,7 +658,7 @@
                                 <?= renderInvoiceTableRow($line, true, $showCompanyColumn, $canInspectRows) ?>
                             <?php endforeach; ?>
                             <tr class="stream-loading-row" id="stream-loading-row-overdue" style="display:none;">
-                                <td colspan="<?= $showCompanyColumn ? '11' : '10' ?>">
+                                <td colspan="<?= $showCompanyColumn ? '12' : '11' ?>">
                                     <span class="stream-spinner"></span>
                                     <span id="stream-loading-text-overdue"><?= h(LOC('msg.stream_table_loading')) ?></span>
                                 </td>
@@ -693,6 +694,7 @@
                             <tr>
                                 <th data-col="job"><?= h(LOC('table.job')) ?></th>
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
+                                <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_until_due')) ?></th>
@@ -711,7 +713,7 @@
                                 <?= renderInvoiceTableRow($line, false, $showCompanyColumn, $canInspectRows) ?>
                             <?php endforeach; ?>
                             <tr class="stream-loading-row" id="stream-loading-row-upcoming" style="display:none;">
-                                <td colspan="<?= $showCompanyColumn ? '11' : '10' ?>">
+                                <td colspan="<?= $showCompanyColumn ? '12' : '11' ?>">
                                     <span class="stream-spinner"></span>
                                     <span id="stream-loading-text-upcoming"><?= h(LOC('msg.stream_table_loading')) ?></span>
                                 </td>
@@ -790,7 +792,7 @@
             const searchInputEl = document.getElementById('table-search');
             const seenOverdueRowKeys = new Set();
             const seenUpcomingRowKeys = new Set();
-            const DYNAMIC_COLS = ['customer', 'document_no', 'work_order', 'company'];
+            const DYNAMIC_COLS = ['accountmanager', 'customer', 'document_no', 'work_order', 'company'];
 
             const config = {
                 hasError: <?= $odataError !== null ? 'true' : 'false' ?>,

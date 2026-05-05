@@ -173,4 +173,35 @@ class HelpersTest extends TestCase
         $url2 = buildOdataMetadataUrl('https://host:7148', 'env');
         $this->assertSame($url1, $url2);
     }
+
+    // --- extractAccountManagerFromUserId() ---
+
+    public function testExtractAccountManagerFromUserIdReturnsSuffixAfterBackslash(): void
+    {
+        $this->assertSame('CVRIJ', extractAccountManagerFromUserId('KVT\\CVRIJ'));
+    }
+
+    public function testExtractAccountManagerFromUserIdReturnsSuffixAfterSlash(): void
+    {
+        $this->assertSame('CVRIJ', extractAccountManagerFromUserId('KVT/CVRIJ'));
+    }
+
+    // --- renderInvoiceTableRow() ---
+
+    public function testRenderInvoiceTableRowShowsParsedAccountManager(): void
+    {
+        $line = [
+            'Planning_Date' => '2026-05-01',
+            'Job_No' => 'J100',
+            'Line_No' => '10000',
+            'Qty_to_Invoice' => 1,
+            'Line_Amount' => 10,
+            'KVT_Status_Work_Order' => 'Open',
+            'User_ID' => 'KVT\\CVRIJ',
+            '_company' => 'KVT',
+        ];
+
+        $html = renderInvoiceTableRow($line, true, true, false);
+        $this->assertStringContainsString('data-col="accountmanager">CVRIJ</td>', $html);
+    }
 }
