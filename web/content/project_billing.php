@@ -74,7 +74,7 @@ function fetchProjectInvoiceRowsForCompanyWindow(
 
     if (!$debugFetchAllRules) {
         $filters = ['Qty_to_Invoice gt 0'];
-        $filters[] = '(No eq 800000 or No eq 800001)';
+        $filters[] = "(No eq '800000' or No eq '800001')";
         // Standard BC option values for Work Order status.
         $filters[] = "(KVT_Status_Work_Order eq 'Open' or KVT_Status_Work_Order eq 'Planned' or KVT_Status_Work_Order eq 'Checked')";
         if ($startDate !== null && $startDate !== '') {

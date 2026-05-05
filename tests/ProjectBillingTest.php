@@ -44,7 +44,7 @@ class ProjectBillingTest extends TestCase
         $this->assertArrayHasKey(1, $matches);
 
         $filter = rawurldecode((string) $matches[1]);
-        $this->assertStringContainsString('(No eq 800000 or No eq 800001)', $filter);
+        $this->assertStringContainsString("(No eq '800000' or No eq '800001')", $filter);
 
         $this->assertStringContainsString('?$filter=', $url);
         $this->assertStringContainsString('&$select=', $url);
