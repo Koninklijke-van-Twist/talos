@@ -29,6 +29,16 @@ if (!is_trusted_requester()) {
     ) {
         $_SESSION['user']['admin'] = true;
     }
+
+    if (
+        !array_any($allowedUsers, function ($email) {
+            return $email == $_SESSION['user']['email'];
+        })
+    ) {
+        require __DIR__ . "/../login/403.php";
+        die();
+    }
+
 } else {
     $_SESSION['user'] = [
         'email' => 'localtester@kvt.nl',
