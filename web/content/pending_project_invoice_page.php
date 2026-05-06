@@ -12,6 +12,9 @@ $userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
 if (!isset($_SESSION['selected_company_by_user']) || !is_array($_SESSION['selected_company_by_user'])) {
     $_SESSION['selected_company_by_user'] = [];
 }
+if (!isset($_SESSION['selected_company_environment_by_user']) || !is_array($_SESSION['selected_company_environment_by_user'])) {
+    $_SESSION['selected_company_environment_by_user'] = [];
+}
 
 $requestedCompany = trim((string) ($_GET['company'] ?? ''));
 $isAllCompaniesSelection = $requestedCompany === '__all__';
@@ -23,6 +26,8 @@ if ($isAllCompaniesSelection) {
     $selectedCompany = '';
 }
 
+$odataErrorPublic = null;
+
 /**
  * Page load
  */
@@ -30,6 +35,10 @@ if ($isAllCompaniesSelection) {
 try {
     $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
     $availableCompanies = $buckets['available_companies'] ?? [];
+    $companyEnvironmentMap = $buckets['company_environment_map'] ?? [];
+    if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
+        setCompanyEnvironmentMap($companyEnvironmentMap);
+    }
 
     $needsRefetch = false;
     if (
@@ -44,12 +53,22 @@ try {
     if ($needsRefetch) {
         $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
         $availableCompanies = $buckets['available_companies'] ?? [];
+        $companyEnvironmentMap = $buckets['company_environment_map'] ?? [];
+        if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
+            setCompanyEnvironmentMap($companyEnvironmentMap);
+        }
     }
 
     if ($selectedCompany !== '') {
         $_SESSION['selected_company_by_user'][$userKey] = $selectedCompany;
+        $selectedCompanyEnvironment = (string) ($buckets['selected_company_environment'] ?? '');
+        if ($selectedCompanyEnvironment === '' && function_exists('getEnvironmentForCompany')) {
+            $selectedCompanyEnvironment = (string) (getEnvironmentForCompany($selectedCompany) ?? '');
+        }
+        $_SESSION['selected_company_environment_by_user'][$userKey] = $selectedCompanyEnvironment;
     } else {
         $_SESSION['selected_company_by_user'][$userKey] = '__all__';
+        $_SESSION['selected_company_environment_by_user'][$userKey] = '__all__';
     }
 
     $debugCompanyResults = $buckets['debug_company_results'] ?? [];
@@ -121,4 +140,5 @@ try {
     $upcomingWindowLabel = '';
     $upcomingSectionTitle = '';
     $odataError = $e->getMessage();
+    $odataErrorPublic = ((int) $e->getCode() === 40901) ? $e->getMessage() : null;
 }

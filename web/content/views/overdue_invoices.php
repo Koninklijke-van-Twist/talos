@@ -613,6 +613,11 @@
 
         <?php if ($odataError !== null): ?>
             <div class="alert alert-danger"><?= h(LOC('error.odata_failed')) ?></div>
+            <?php if (!empty($odataErrorPublic)): ?>
+                <div class="alert alert-danger" style="white-space: pre-wrap; font-family: Consolas, monospace;">
+                    <?= h($odataErrorPublic) ?>
+                </div>
+            <?php endif; ?>
             <?php if (!empty($showOdataErrorDetails)): ?>
                 <div class="alert alert-info" style="white-space: pre-wrap; font-family: Consolas, monospace;">
                     <?= h($odataError) ?>

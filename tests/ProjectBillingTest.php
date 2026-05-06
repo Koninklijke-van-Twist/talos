@@ -9,6 +9,10 @@ if (!function_exists('odata_get_all')) {
     {
         $GLOBALS['__projectBillingTestLastUrl'] = $url;
 
+        if (isset($GLOBALS['__projectBillingTestOdataResponder']) && is_callable($GLOBALS['__projectBillingTestOdataResponder'])) {
+            return (array) call_user_func($GLOBALS['__projectBillingTestOdataResponder'], $url, $auth, $ttlSeconds);
+        }
+
         return [];
     }
 }
@@ -20,6 +24,7 @@ class ProjectBillingTest extends TestCase
     protected function setUp(): void
     {
         unset($GLOBALS['__projectBillingTestLastUrl']);
+        unset($GLOBALS['__projectBillingTestOdataResponder']);
     }
 
     public function testFetchRowsAddsNoFilterForSpecificRuleTypes(): void
@@ -78,5 +83,64 @@ class ProjectBillingTest extends TestCase
 
         $unfiltered = filterSapImportRows($rows, false);
         $this->assertCount(3, $unfiltered);
+    }
+
+    public function testFetchAvailableCompanyContextBuildsEnvironmentMapAcrossEnvironments(): void
+    {
+        $GLOBALS['__projectBillingTestOdataResponder'] = static function (string $url): array {
+            if (str_contains($url, '/kvtmdlive_aad/ODataV4/Company?')) {
+                return [
+                    ['Name' => 'Alpha NL'],
+                    ['Name' => 'Zeta NL'],
+                ];
+            }
+
+            if (str_contains($url, '/kvtgermanylive_aad/ODataV4/Company?')) {
+                return [
+                    ['Name' => 'Beta DE'],
+                ];
+            }
+
+            return [];
+        };
+
+        $context = fetchAvailableCompanyContext(
+            'https://example.test',
+            ['kvtmdlive_aad', 'kvtgermanylive_aad'],
+            ['user' => 'u', 'pass' => 'p']
+        );
+
+        $this->assertSame(['Alpha NL', 'Beta DE', 'Zeta NL'], $context['available_companies']);
+        $this->assertSame('kvtmdlive_aad', $context['company_environment_map']['Alpha NL']);
+        $this->assertSame('kvtgermanylive_aad', $context['company_environment_map']['Beta DE']);
+    }
+
+    public function testFetchAvailableCompanyContextThrowsOnCrossEnvironmentOverlap(): void
+    {
+        $GLOBALS['__projectBillingTestOdataResponder'] = static function (string $url): array {
+            if (str_contains($url, '/kvtmdlive_aad/ODataV4/Company?')) {
+                return [
+                    ['Name' => 'Shared Company'],
+                ];
+            }
+
+            if (str_contains($url, '/kvtgermanylive_aad/ODataV4/Company?')) {
+                return [
+                    ['Name' => 'Shared Company'],
+                ];
+            }
+
+            return [];
+        };
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionCode(40901);
+        $this->expectExceptionMessage('Shared Company');
+
+        fetchAvailableCompanyContext(
+            'https://example.test',
+            ['kvtmdlive_aad', 'kvtgermanylive_aad'],
+            ['user' => 'u', 'pass' => 'p']
+        );
     }
 }

@@ -1,0 +1,11 @@
+timestamp=2026-05-06T12:25:32+00:00
+kind=php_error
+message=Array to string conversion
+file=C:\xampp\htdocs\Talos\web\odata.php
+line=118
+severity=E_WARNING
+request_uri=/talos/web/?company=Koninklijke+van+Twist
+request_method=GET
+remote_addr=::1
+session_id=gsidv8hl50n8ls78lt5gcssg62
+user_email=localtester@kvt.nl

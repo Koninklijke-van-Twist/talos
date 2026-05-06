@@ -54,7 +54,26 @@ if ($company === '' || $jobNo === '' || $lineNo === '') {
 }
 
 try {
-    $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $company);
+    $companyEnvironment = null;
+    if (function_exists('getEnvironmentForCompany')) {
+        $companyEnvironment = getEnvironmentForCompany($company);
+    }
+
+    if ($companyEnvironment === null || $companyEnvironment === '') {
+        $companyEnvironment = function_exists('getPrimaryEnvironment')
+            ? getPrimaryEnvironment()
+            : (is_array($environment) ? (string) ($environment[0] ?? '') : (string) $environment);
+    }
+
+    if ($companyEnvironment === '') {
+        throw new Exception('Could not resolve environment for company');
+    }
+
+    $authForEnvironment = function_exists('getAuthForEnvironment')
+        ? getAuthForEnvironment($companyEnvironment)
+        : $auth;
+
+    $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $companyEnvironment, $company);
 
     $filters = [
         'Job_No eq ' . odataStringLiteral($jobNo),
@@ -73,7 +92,7 @@ try {
         . '?$filter=' . rawurlencode(implode(' and ', $filters))
         . '&$top=1';
 
-    $rows = odata_get_all($queryUrl, $auth, 300);
+    $rows = odata_get_all($queryUrl, $authForEnvironment, 300);
 
     if (empty($rows)) {
         echo json_encode([

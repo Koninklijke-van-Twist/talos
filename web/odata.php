@@ -115,7 +115,17 @@ function build_cache_key(string $url, array $auth): string
 {
     require __DIR__ . "/auth.php";
     $user = (string) ($auth['user'] ?? '');
-    return $url . '|' . $user . '|' . $environment;
+    $environmentKey = '';
+
+    if (function_exists('getActiveEnvironments')) {
+        $environmentKey = implode(',', getActiveEnvironments());
+    } elseif (is_array($environment)) {
+        $environmentKey = implode(',', array_map('strval', $environment));
+    } else {
+        $environmentKey = (string) $environment;
+    }
+
+    return $url . '|' . $user . '|' . $environmentKey;
 }
 
 function cache_base_dir(): string

@@ -1,0 +1,11 @@
+timestamp=2026-05-06T12:26:07+00:00
+kind=php_error
+message=Array to string conversion
+file=C:\xampp\htdocs\Talos\web\odata.php
+line=118
+severity=E_WARNING
+request_uri=/talos/web/?company=Hunter+van+Twist&hide_sap_imports=0&hide_sap_imports=1
+request_method=GET
+remote_addr=::1
+session_id=gsidv8hl50n8ls78lt5gcssg62
+user_email=localtester@kvt.nl

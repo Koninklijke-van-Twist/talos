@@ -14,10 +14,34 @@ function buildProjectInvoiceSelectClause(): string
     return 'Job_No,Line_No,Planning_Date,Description,Document_No,Qty_to_Invoice,Line_Amount,LVS_Bill_to_Customer_No,KVT_Bill_To_Cust_No_WO,LVS_Work_Order_No,KVT_Memo_Invoice,KVT_Status_Work_Order,User_ID';
 }
 
-function appendCompanyToRows(array $rows, string $companyName): array
+function projectBillingTranslate(string $key, ...$args): string
+{
+    if (function_exists('LOC')) {
+        return LOC($key, ...$args);
+    }
+
+    $fallback = [
+        'error.company_environment_overlap' => 'Company "%s" exists in multiple environments (%s). This is not allowed. Remove the overlap before continuing.',
+    ];
+
+    $text = $fallback[$key] ?? $key;
+    return empty($args) ? $text : vsprintf($text, $args);
+}
+
+function resolveAuthForEnvironment(string $environment, array $fallbackAuth): array
+{
+    if (function_exists('getAuthForEnvironment')) {
+        return getAuthForEnvironment($environment);
+    }
+
+    return $fallbackAuth;
+}
+
+function appendCompanyToRows(array $rows, string $companyName, string $environment): array
 {
     foreach ($rows as &$row) {
         $row['_company'] = $companyName;
+        $row['_environment'] = $environment;
     }
     unset($row);
 
@@ -172,8 +196,9 @@ function fetchProjectInvoiceRowsForCompanyWindow(
 
 function mergeCompanyRowsForWindow(
     array $companyNames,
+    array $companyEnvironmentMap,
     string $baseUrl,
-    string $environment,
+    array $activeEnvironments,
     array $auth,
     ?string $startDate,
     ?string $endDate,
@@ -186,6 +211,7 @@ function mergeCompanyRowsForWindow(
     bool &$limitReached
 ): array {
     $windowRows = [];
+    $primaryEnvironment = !empty($activeEnvironments) ? (string) $activeEnvironments[0] : '';
 
     foreach ($companyNames as $companyName) {
         if ($callCount >= PROJECT_BILLING_MAX_CALLS_PER_REQUEST) {
@@ -193,9 +219,17 @@ function mergeCompanyRowsForWindow(
             break;
         }
 
+        $environment = (string) ($companyEnvironmentMap[$companyName] ?? $primaryEnvironment);
+        if ($environment === '') {
+            continue;
+        }
+
+        $authForEnvironment = resolveAuthForEnvironment($environment, $auth);
+
         if (!isset($debugCompanyResults[$companyName])) {
             $debugCompanyResults[$companyName] = [
                 'company' => $companyName,
+                'environment' => $environment,
                 'ok' => false,
                 'count' => 0,
                 'error' => '',
@@ -207,7 +241,7 @@ function mergeCompanyRowsForWindow(
             $rows = fetchProjectInvoiceRowsForCompanyWindow(
                 $baseUrl,
                 $environment,
-                $auth,
+                $authForEnvironment,
                 $companyName,
                 $startDate,
                 $endDate,
@@ -227,7 +261,7 @@ function mergeCompanyRowsForWindow(
                     $jobCardData = fetchJobCardsByJobNumbers(
                         $baseUrl,
                         $environment,
-                        $auth,
+                        $authForEnvironment,
                         $companyName,
                         $jobNumbers
                     );
@@ -238,8 +272,9 @@ function mergeCompanyRowsForWindow(
             $debugCompanyResults[$companyName]['ok'] = true;
             $debugCompanyResults[$companyName]['count'] += count($rows);
             $debugCompanyResults[$companyName]['error'] = '';
+            $debugCompanyResults[$companyName]['environment'] = $environment;
 
-            $windowRows = array_merge($windowRows, appendCompanyToRows($rows, $companyName));
+            $windowRows = array_merge($windowRows, appendCompanyToRows($rows, $companyName, $environment));
         } catch (Exception $e) {
             $debugCompanyResults[$companyName]['error'] = $e->getMessage();
             if ($firstErrorMessage === null) {
@@ -285,7 +320,46 @@ function fetchAvailableCompanyNames(string $baseUrl, string $environment, array 
     return $names;
 }
 
-function fetchPendingProjectInvoiceLines(string $baseUrl, string $environment, array $auth, string $today, bool $hideSapImports = true): array
+function fetchAvailableCompanyContext(string $baseUrl, array $activeEnvironments, array $fallbackAuth): array
+{
+    $allNames = [];
+    $companyEnvironmentMap = [];
+
+    foreach ($activeEnvironments as $environment) {
+        $environmentName = (string) $environment;
+        if ($environmentName === '') {
+            continue;
+        }
+
+        $authForEnvironment = resolveAuthForEnvironment($environmentName, $fallbackAuth);
+        $namesForEnvironment = fetchAvailableCompanyNames($baseUrl, $environmentName, $authForEnvironment);
+
+        foreach ($namesForEnvironment as $companyName) {
+            if (isset($companyEnvironmentMap[$companyName]) && $companyEnvironmentMap[$companyName] !== $environmentName) {
+                $message = projectBillingTranslate(
+                    'error.company_environment_overlap',
+                    $companyName,
+                    $companyEnvironmentMap[$companyName] . ', ' . $environmentName
+                );
+                throw new Exception($message, 40901);
+            }
+
+            $companyEnvironmentMap[$companyName] = $environmentName;
+            if (!in_array($companyName, $allNames, true)) {
+                $allNames[] = $companyName;
+            }
+        }
+    }
+
+    sort($allNames, SORT_NATURAL | SORT_FLAG_CASE);
+
+    return [
+        'available_companies' => $allNames,
+        'company_environment_map' => $companyEnvironmentMap,
+    ];
+}
+
+function fetchPendingProjectInvoiceLines(string $baseUrl, $environment, array $auth, string $today, bool $hideSapImports = true): array
 {
     $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, null, false, $hideSapImports);
     return $buckets['overdue'];
@@ -293,14 +367,29 @@ function fetchPendingProjectInvoiceLines(string $baseUrl, string $environment, a
 
 function fetchProjectInvoiceBuckets(
     string $baseUrl,
-    string $environment,
+    $environment,
     array $auth,
     string $today,
     ?string $selectedCompany = null,
     bool $debugFetchAllRules = false,
     bool $hideSapImports = true
 ): array {
-    $availableCompanies = fetchAvailableCompanyNames($baseUrl, $environment, $auth);
+    $activeEnvironments = function_exists('talosNormalizeEnvironmentList')
+        ? talosNormalizeEnvironmentList($environment)
+        : (is_array($environment) ? $environment : [trim((string) $environment)]);
+
+    if (empty($activeEnvironments)) {
+        $activeEnvironments = ['kvtmdlive_aad'];
+    }
+
+    $companyContext = fetchAvailableCompanyContext($baseUrl, $activeEnvironments, $auth);
+    $availableCompanies = $companyContext['available_companies'];
+    $companyEnvironmentMap = $companyContext['company_environment_map'];
+
+    $selectedCompanyEnvironment = null;
+    if ($selectedCompany !== null && $selectedCompany !== '') {
+        $selectedCompanyEnvironment = $companyEnvironmentMap[$selectedCompany] ?? null;
+    }
 
     $companyNames = $availableCompanies;
     if ($selectedCompany !== null && $selectedCompany !== '') {
@@ -330,8 +419,9 @@ function fetchProjectInvoiceBuckets(
     if ($debugFetchAllRules || $streamMode) {
         $allLines = mergeCompanyRowsForWindow(
             $companyNames,
+            $companyEnvironmentMap,
             $baseUrl,
-            $environment,
+            $activeEnvironments,
             $auth,
             null,
             null,
@@ -369,8 +459,9 @@ function fetchProjectInvoiceBuckets(
 
         $overdueLines = mergeCompanyRowsForWindow(
             $companyNames,
+            $companyEnvironmentMap,
             $baseUrl,
-            $environment,
+            $activeEnvironments,
             $auth,
             null,
             $overdueEnd,
@@ -385,8 +476,9 @@ function fetchProjectInvoiceBuckets(
 
         $upcomingWeekLines = mergeCompanyRowsForWindow(
             $companyNames,
+            $companyEnvironmentMap,
             $baseUrl,
-            $environment,
+            $activeEnvironments,
             $auth,
             date('Y-m-d', strtotime($today . ' +1 day')),
             $weekEnd,
@@ -409,8 +501,9 @@ function fetchProjectInvoiceBuckets(
 
                 $windowRows = mergeCompanyRowsForWindow(
                     $companyNames,
+                    $companyEnvironmentMap,
                     $baseUrl,
-                    $environment,
+                    $activeEnvironments,
                     $auth,
                     $window[0],
                     $window[1],
@@ -440,8 +533,9 @@ function fetchProjectInvoiceBuckets(
 
                 $windowRows = mergeCompanyRowsForWindow(
                     $companyNames,
+                    $companyEnvironmentMap,
                     $baseUrl,
-                    $environment,
+                    $activeEnvironments,
                     $auth,
                     $window[0],
                     $window[1],
@@ -473,8 +567,9 @@ function fetchProjectInvoiceBuckets(
 
                 $windowRows = mergeCompanyRowsForWindow(
                     $companyNames,
+                    $companyEnvironmentMap,
                     $baseUrl,
-                    $environment,
+                    $activeEnvironments,
                     $auth,
                     $windowStart,
                     $windowEnd,
@@ -514,6 +609,8 @@ function fetchProjectInvoiceBuckets(
         'all' => $allLines,
         'all_without_planning_date' => 0,
         'available_companies' => $availableCompanies,
+        'company_environment_map' => $companyEnvironmentMap,
+        'selected_company_environment' => $selectedCompanyEnvironment,
         'week_end' => $weekEnd,
         'month_end' => $monthEnd,
         'year_end' => $yearEnd,

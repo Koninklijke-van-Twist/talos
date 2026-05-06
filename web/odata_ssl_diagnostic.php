@@ -54,7 +54,14 @@ if (!validateApiKey($incomingKey, $apiKeys)) {
     exit;
 }
 
-$url = buildOdataMetadataUrl($baseUrl, $environment);
+$activeEnvironment = function_exists('getPrimaryEnvironment')
+    ? getPrimaryEnvironment()
+    : (is_array($environment) ? (string) ($environment[0] ?? '') : (string) $environment);
+$authForEnvironment = function_exists('getAuthForEnvironment')
+    ? getAuthForEnvironment($activeEnvironment)
+    : $auth;
+
+$url = buildOdataMetadataUrl($baseUrl, $activeEnvironment);
 $ch = curl_init($url);
 
 curl_setopt_array($ch, [
@@ -67,12 +74,12 @@ curl_setopt_array($ch, [
     ],
 ]);
 
-if (($auth['mode'] ?? '') === 'basic') {
+if (($authForEnvironment['mode'] ?? '') === 'basic') {
     curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_setopt($ch, CURLOPT_USERPWD, $auth['user'] . ':' . $auth['pass']);
-} elseif (($auth['mode'] ?? '') === 'ntlm') {
+    curl_setopt($ch, CURLOPT_USERPWD, $authForEnvironment['user'] . ':' . $authForEnvironment['pass']);
+} elseif (($authForEnvironment['mode'] ?? '') === 'ntlm') {
     curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_NTLM);
-    curl_setopt($ch, CURLOPT_USERPWD, $auth['user'] . ':' . $auth['pass']);
+    curl_setopt($ch, CURLOPT_USERPWD, $authForEnvironment['user'] . ':' . $authForEnvironment['pass']);
 }
 
 $raw = curl_exec($ch);
@@ -89,8 +96,8 @@ $payload = [
     'timestamp' => gmdate('c'),
     'request' => [
         'url' => $url,
-        'environment' => $environment,
-        'auth_mode' => (string) ($auth['mode'] ?? ''),
+        'environment' => $activeEnvironment,
+        'auth_mode' => (string) ($authForEnvironment['mode'] ?? ''),
     ],
     'curl' => [
         'error_no' => $curlErrorNo,
