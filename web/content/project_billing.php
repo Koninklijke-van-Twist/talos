@@ -69,6 +69,64 @@ function filterSapImportRows(array $rows, bool $hideSapImports): array
     }));
 }
 
+function fetchJobCardsByJobNumbers(
+    string $baseUrl,
+    string $environment,
+    array $auth,
+    string $companyName,
+    array $jobNumbers
+): array {
+    if (empty($jobNumbers)) {
+        return [];
+    }
+
+    $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $companyName);
+    $jobNumbers = array_unique(array_filter(array_map('trim', $jobNumbers)));
+    if (empty($jobNumbers)) {
+        return [];
+    }
+
+    $filterParts = array_map(
+        static fn(string $jobNo): string => "No eq '" . str_replace("'", "''", $jobNo) . "'",
+        $jobNumbers
+    );
+    $filterClause = '(' . implode(' or ', $filterParts) . ')';
+
+    $queryUrl = $companyBaseUrl . 'JobCard'
+        . '?$filter=' . rawurlencode($filterClause)
+        . '&$select=No,Project_Manager,Status';
+
+    $jobCards = odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
+
+    $indexed = [];
+    foreach ($jobCards as $jobCard) {
+        $no = (string) ($jobCard['No'] ?? '');
+        if ($no !== '') {
+            $indexed[$no] = $jobCard;
+        }
+    }
+
+    return $indexed;
+}
+
+function enrichRowsWithJobCardData(array $rows, array $jobCardsByNo): array
+{
+    foreach ($rows as &$row) {
+        $jobNo = (string) ($row['Job_No'] ?? '');
+        if ($jobNo !== '' && isset($jobCardsByNo[$jobNo])) {
+            $jobCard = $jobCardsByNo[$jobNo];
+            $row['_project_manager'] = (string) ($jobCard['Project_Manager'] ?? '');
+            $row['_jobcard_status'] = (string) ($jobCard['Status'] ?? '');
+            continue;
+        }
+
+        $row['_project_manager'] = '';
+        $row['_jobcard_status'] = '';
+    }
+    unset($row);
+
+    return $rows;
+}
 function fetchProjectInvoiceRowsForCompanyWindow(
     string $baseUrl,
     string $environment,
@@ -157,6 +215,25 @@ function mergeCompanyRowsForWindow(
                 $skip,
                 PROJECT_BILLING_CHUNK_SIZE
             );
+
+            if (!empty($rows) && $callCount < PROJECT_BILLING_MAX_CALLS_PER_REQUEST) {
+                $jobNumbers = array_values(array_filter(array_map(
+                    static fn(array $row): string => (string) ($row['Job_No'] ?? ''),
+                    $rows
+                )));
+
+                if (!empty($jobNumbers)) {
+                    $callCount++;
+                    $jobCardData = fetchJobCardsByJobNumbers(
+                        $baseUrl,
+                        $environment,
+                        $auth,
+                        $companyName,
+                        $jobNumbers
+                    );
+                    $rows = enrichRowsWithJobCardData($rows, $jobCardData);
+                }
+            }
 
             $debugCompanyResults[$companyName]['ok'] = true;
             $debugCompanyResults[$companyName]['count'] += count($rows);

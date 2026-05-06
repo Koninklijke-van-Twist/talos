@@ -74,4 +74,12 @@ class LocalizationTest extends TestCase
             }
         }
     }
+
+    public function testNewProjectBillingColumnLabelsExistInDutch(): void
+    {
+        $_SESSION['lang'] = 'nl';
+
+        $this->assertSame('Project Manager', LOC('table.project_manager'));
+        $this->assertSame('Status', LOC('table.jobcard_status'));
+    }
 }

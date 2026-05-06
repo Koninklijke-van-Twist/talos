@@ -199,6 +199,8 @@ function renderInvoiceTableRow(
         . '<td data-col="job">' . h($jobNo) . '</td>'
         . '<td data-col="status">' . $statusBadge . '</td>'
         . '<td data-col="accountmanager">' . h($accountManager) . '</td>'
+           . '<td data-col="project_manager">' . h((string) ($line['_project_manager'] ?? '')) . '</td>'
+           . '<td data-col="jobcard_status">' . h((string) ($line['_jobcard_status'] ?? '')) . '</td>'
         . '<td data-col="description">' . h((string) ($line['Description'] ?? '')) . '</td>'
         . '<td data-col="planning_date">' . h(formatDate($planningDateRaw)) . '</td>'
         . '<td data-col="days">' . $badge . '</td>'

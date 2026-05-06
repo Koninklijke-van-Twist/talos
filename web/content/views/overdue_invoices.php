@@ -660,6 +660,8 @@
                                 <th data-col="job"><?= h(LOC('table.job')) ?></th>
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
                                 <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
+                                <th data-col="project_manager"><?= h(LOC('table.project_manager')) ?></th>
+                                <th data-col="jobcard_status"><?= h(LOC('table.jobcard_status')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_overdue')) ?></th>
@@ -678,7 +680,7 @@
                                 <?= renderInvoiceTableRow($line, true, $showCompanyColumn, $canInspectRows) ?>
                             <?php endforeach; ?>
                             <tr class="stream-loading-row" id="stream-loading-row-overdue" style="display:none;">
-                                <td colspan="<?= $showCompanyColumn ? '12' : '11' ?>">
+                                <td colspan="<?= $showCompanyColumn ? '14' : '13' ?>">
                                     <span class="stream-spinner"></span>
                                     <span id="stream-loading-text-overdue"><?= h(LOC('msg.stream_table_loading')) ?></span>
                                 </td>
@@ -715,6 +717,8 @@
                                 <th data-col="job"><?= h(LOC('table.job')) ?></th>
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
                                 <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
+                                <th data-col="project_manager"><?= h(LOC('table.project_manager')) ?></th>
+                                <th data-col="jobcard_status"><?= h(LOC('table.jobcard_status')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_until_due')) ?></th>
@@ -733,7 +737,7 @@
                                 <?= renderInvoiceTableRow($line, false, $showCompanyColumn, $canInspectRows) ?>
                             <?php endforeach; ?>
                             <tr class="stream-loading-row" id="stream-loading-row-upcoming" style="display:none;">
-                                <td colspan="<?= $showCompanyColumn ? '12' : '11' ?>">
+                                <td colspan="<?= $showCompanyColumn ? '14' : '13' ?>">
                                     <span class="stream-spinner"></span>
                                     <span id="stream-loading-text-upcoming"><?= h(LOC('msg.stream_table_loading')) ?></span>
                                 </td>
