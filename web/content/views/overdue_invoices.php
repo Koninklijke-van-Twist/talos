@@ -564,7 +564,8 @@
                 </select>
                 <input type="hidden" name="hide_sap_imports" value="0">
                 <label for="hide-sap-imports" class="checkbox-label">
-                    <input type="checkbox" id="hide-sap-imports" name="hide_sap_imports" value="1" <?= !empty($hideSapImports) ? 'checked' : '' ?>>
+                    <input type="checkbox" id="hide-sap-imports" name="hide_sap_imports" value="1"
+                        <?= !empty($hideSapImports) ? 'checked' : '' ?>>
                     <?= h(LOC('filter.hide_sap_imports')) ?>
                 </label>
                 <?php if (!empty($showOdataErrorDetails)): ?>
@@ -633,8 +634,7 @@
             </div>
 
             <div class="search-bar" id="search-bar">
-                <input type="search" id="table-search"
-                    placeholder="<?= h(LOC('filter.search_placeholder')) ?>"
+                <input type="search" id="table-search" placeholder="<?= h(LOC('filter.search_placeholder')) ?>"
                     autocomplete="off">
             </div>
 
@@ -922,10 +922,12 @@
 
                     const rowKey = String(rowNode.getAttribute('data-row-key') || '');
                     const keySet = targetBody === overdueRowsEl ? seenOverdueRowKeys : seenUpcomingRowKeys;
-                    if (rowKey !== '' && keySet.has(rowKey)) {
+                    if (rowKey !== '' && keySet.has(rowKey))
+                    {
                         return;
                     }
-         if (rowKey !== '') {
+                    if (rowKey !== '')
+                    {
                         keySet.add(rowKey);
                     }
 
@@ -944,7 +946,8 @@
 
             function initSeenKeys (targetBody, keySet)
             {
-                if (!targetBody) {
+                if (!targetBody)
+                {
                     return;
                 }
 
@@ -952,7 +955,8 @@
                 rows.forEach(function (row)
                 {
                     const rowKey = String(row.getAttribute('data-row-key') || '');
-                    if (rowKey !== '') {
+                    if (rowKey !== '')
+                    {
                         keySet.add(rowKey);
                     }
                 });
@@ -960,7 +964,8 @@
 
             function sortOverdueRowsByDaysDesc ()
             {
-                if (!overdueRowsEl) {
+                if (!overdueRowsEl)
+                {
                     return;
                 }
 
@@ -974,9 +979,11 @@
 
                 rows.forEach(function (row)
                 {
-                    if (overdueLoadingRowEl) {
+                    if (overdueLoadingRowEl)
+                    {
                         overdueRowsEl.insertBefore(row, overdueLoadingRowEl);
-                    } else {
+                    } else
+                    {
                         overdueRowsEl.appendChild(row);
                     }
                 });
@@ -984,7 +991,8 @@
 
             function updateSummaryFromRows (rowsEl, countEl, ruleEl, amountEl)
             {
-                if (!rowsEl || !countEl || !ruleEl || !amountEl) {
+                if (!rowsEl || !countEl || !ruleEl || !amountEl)
+                {
                     return;
                 }
 
@@ -999,7 +1007,8 @@
                 {
                     const amountRaw = String(row.getAttribute('data-line-amount') || '0').replace(',', '.');
                     const amount = Number(amountRaw);
-                    if (Number.isFinite(amount)) {
+                    if (Number.isFinite(amount))
+                    {
                         total += amount;
                     }
                 });
@@ -1031,13 +1040,16 @@
 
             function getStatusLabel (status)
             {
-                if (status === 'Open') {
+                if (status === 'Open')
+                {
                     return config.statusOpenLabel;
                 }
-                if (status === 'Checked') {
+                if (status === 'Checked')
+                {
                     return config.statusCheckedLabel;
                 }
-                if (status === 'Planned') {
+                if (status === 'Planned')
+                {
                     return config.statusPlannedLabel;
                 }
 
@@ -1057,7 +1069,8 @@
 
                 [overdueRowsEl, upcomingRowsEl].forEach(function (tbodyEl)
                 {
-                    if (!tbodyEl) {
+                    if (!tbodyEl)
+                    {
                         return;
                     }
 
@@ -1065,7 +1078,8 @@
                     cells.forEach(function (cell)
                     {
                         const status = String(cell.getAttribute('data-status') || '').trim();
-                        if (status !== '') {
+                        if (status !== '')
+                        {
                             statuses.add(status);
                         }
                     });
@@ -1075,7 +1089,8 @@
                 {
                     const leftSort = statusSortValue(left);
                     const rightSort = statusSortValue(right);
-                    if (leftSort !== rightSort) {
+                    if (leftSort !== rightSort)
+                    {
                         return leftSort - rightSort;
                     }
 
@@ -1085,11 +1100,13 @@
 
             function renderStatusFilterButtons ()
             {
-                if (!statusFilterListEl || !statusFilterButtonsEl) {
+                if (!statusFilterListEl || !statusFilterButtonsEl)
+                {
                     return;
                 }
 
-                if (knownStatuses.length === 0) {
+                if (knownStatuses.length === 0)
+                {
                     statusFilterListEl.innerHTML = '';
                     return;
                 }
@@ -1115,22 +1132,26 @@
                 const discoveredStatuses = collectStatusesFromRows();
                 const discoveredSet = new Set(discoveredStatuses);
 
-                if (knownStatuses.length === 0 && activeStatusFilters.size === 0) {
+                if (knownStatuses.length === 0 && activeStatusFilters.size === 0)
+                {
                     discoveredStatuses.forEach(function (status)
                     {
                         activeStatusFilters.add(status);
                     });
-                } else {
+                } else
+                {
                     discoveredStatuses.forEach(function (status)
                     {
-                        if (!activeStatusFilters.has(status)) {
+                        if (!activeStatusFilters.has(status))
+                        {
                             activeStatusFilters.add(status);
                         }
                     });
 
                     Array.from(activeStatusFilters).forEach(function (status)
                     {
-                        if (!discoveredSet.has(status)) {
+                        if (!discoveredSet.has(status))
+                        {
                             activeStatusFilters.delete(status);
                         }
                     });
@@ -1149,16 +1170,20 @@
 
                 return escaped.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"\s*:?)|(\btrue\b|\bfalse\b)|(\bnull\b)|(-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match)
                 {
-                    if (/^".*":$/.test(match)) {
+                    if (/^".*":$/.test(match))
+                    {
                         return '<span class="json-key">' + match + '</span>';
                     }
-                    if (/^"/.test(match)) {
+                    if (/^"/.test(match))
+                    {
                         return '<span class="json-string">' + match + '</span>';
                     }
-                    if (/true|false/.test(match)) {
+                    if (/true|false/.test(match))
+                    {
                         return '<span class="json-boolean">' + match + '</span>';
                     }
-                    if (/null/.test(match)) {
+                    if (/null/.test(match))
+                    {
                         return '<span class="json-null">' + match + '</span>';
                     }
                     return '<span class="json-number">' + match + '</span>';
@@ -1167,7 +1192,8 @@
 
             function closeInspectorModal ()
             {
-                if (!jsonModalEl) {
+                if (!jsonModalEl)
+                {
                     return;
                 }
 
@@ -1177,7 +1203,8 @@
 
             function openInspectorModalRaw (jsonObject)
             {
-                if (!jsonModalEl || !jsonInspectorContentEl) {
+                if (!jsonModalEl || !jsonInspectorContentEl)
+                {
                     return;
                 }
 
@@ -1207,12 +1234,14 @@
                         'Accept': 'application/json'
                     }
                 });
-                if (!response.ok) {
+                if (!response.ok)
+                {
                     throw new Error('HTTP ' + response.status);
                 }
 
                 const payload = await response.json();
-                if (!payload || payload.ok !== true || typeof payload.row !== 'object' || payload.row === null) {
+                if (!payload || payload.ok !== true || typeof payload.row !== 'object' || payload.row === null)
+                {
                     throw new Error(String(payload && payload.error ? payload.error : 'Failed to load full row'));
                 }
 
@@ -1221,38 +1250,46 @@
 
             function bindRowInspector (tbodyEl)
             {
-                if (!tbodyEl || !config.canInspectRows) {
+                if (!tbodyEl || !config.canInspectRows)
+                {
                     return;
                 }
 
                 tbodyEl.addEventListener('click', async function (event)
                 {
                     const row = event.target.closest('tr.row-inspectable');
-                    if (!row || !tbodyEl.contains(row)) {
+                    if (!row || !tbodyEl.contains(row))
+                    {
                         return;
                     }
 
                     let fallbackJson = null;
                     const rowJsonBase64 = String(row.getAttribute('data-row-json') || '');
-                    if (rowJsonBase64 !== '') {
-                        try {
+                    if (rowJsonBase64 !== '')
+                    {
+                        try
+                        {
                             fallbackJson = decodeBase64Json(rowJsonBase64);
-                        } catch (error) {
+                        } catch (error)
+                        {
                             fallbackJson = null;
                         }
                     }
 
                     const metaBase64 = String(row.getAttribute('data-inspect-meta') || '');
-                    if (metaBase64 === '') {
+                    if (metaBase64 === '')
+                    {
                         openInspectorModalRaw(fallbackJson || { error: 'Geen inspectie metadata beschikbaar' });
                         return;
                     }
 
-                    try {
+                    try
+                    {
                         const meta = decodeBase64Json(metaBase64);
                         const fullRow = await fetchFullRowForInspection(meta);
                         openInspectorModalRaw(fullRow);
-                    } catch (error) {
+                    } catch (error)
+                    {
                         openInspectorModalRaw({
                             error: String(error && error.message ? error.message : error),
                             fallback_row: fallbackJson,
@@ -1274,11 +1311,13 @@
                 const addedOverdue = appendHtmlRowsBeforeLoader(overdueRowsEl, overdueLoadingRowEl, pendingRowHtml);
                 const addedUpcoming = appendHtmlRowsBeforeLoader(upcomingRowsEl, upcomingLoadingRowEl, upcomingRowHtml);
 
-                if (addedOverdue > 0) {
+                if (addedOverdue > 0)
+                {
                     sortOverdueRowsByDaysDesc();
                 }
 
-                if ((addedOverdue + addedUpcoming) > 0) {
+                if ((addedOverdue + addedUpcoming) > 0)
+                {
                     syncStatusFiltersFromRows();
                     updateRowVisibilityBasedOnStatus();
                     updateColumnVisibility();
@@ -1375,27 +1414,32 @@
                 }, 1000);
             }
 
-            if (jsonModalCloseEl) {
+            if (jsonModalCloseEl)
+            {
                 jsonModalCloseEl.addEventListener('click', closeInspectorModal);
             }
-            if (jsonModalEl) {
+            if (jsonModalEl)
+            {
                 jsonModalEl.addEventListener('click', function (event)
                 {
-                    if (event.target === jsonModalEl) {
+                    if (event.target === jsonModalEl)
+                    {
                         closeInspectorModal();
                     }
                 });
             }
             document.addEventListener('keydown', function (event)
             {
-                if (event.key === 'Escape') {
+                if (event.key === 'Escape')
+                {
                     closeInspectorModal();
                 }
             });
 
             function rowMatchesSearch (row)
             {
-                if (activeSearchQuery === '') {
+                if (activeSearchQuery === '')
+                {
                     return true;
                 }
 
@@ -1404,13 +1448,15 @@
 
             function updateRowVisibilityBasedOnStatus ()
             {
-                if (!overdueRowsEl && !upcomingRowsEl) {
+                if (!overdueRowsEl && !upcomingRowsEl)
+                {
                     return;
                 }
 
                 [overdueRowsEl, upcomingRowsEl].forEach(function (tbodyEl)
                 {
-                    if (!tbodyEl) {
+                    if (!tbodyEl)
+                    {
                         return;
                     }
 
@@ -1418,7 +1464,8 @@
                     rows.forEach(function (row)
                     {
                         const statusCell = row.querySelector('[data-status]');
-                        if (!statusCell) {
+                        if (!statusCell)
+                        {
                             row.style.display = rowMatchesSearch(row) ? '' : 'none';
                             return;
                         }
@@ -1441,14 +1488,16 @@
                     let hasData = false;
                     allTbodies.forEach(function (tbody)
                     {
-                        if (hasData) {
+                        if (hasData)
+                        {
                             return;
                         }
 
                         const cells = tbody.querySelectorAll('tr[data-row-key] td[data-col="' + col + '"]');
                         cells.forEach(function (cell)
                         {
-                            if (cell.textContent.trim() !== '') {
+                            if (cell.textContent.trim() !== '')
+                            {
                                 hasData = true;
                             }
                         });
@@ -1463,31 +1512,37 @@
 
             function bindStatusFilterButtons ()
             {
-                if (!statusFilterListEl) {
+                if (!statusFilterListEl)
+                {
                     return;
                 }
 
                 statusFilterListEl.addEventListener('click', function (event)
                 {
                     const btn = event.target.closest('.status-filter-btn');
-                    if (!btn || !statusFilterListEl.contains(btn)) {
+                    if (!btn || !statusFilterListEl.contains(btn))
+                    {
                         return;
                     }
 
                     const status = String(btn.getAttribute('data-status') || '');
-                    if (status === '') {
+                    if (status === '')
+                    {
                         return;
                     }
 
-                    if (status === 'all') {
+                    if (status === 'all')
+                    {
                         const allAreActive = knownStatuses.length > 0 && knownStatuses.every(function (knownStatus)
                         {
                             return activeStatusFilters.has(knownStatus);
                         });
 
-                        if (allAreActive) {
+                        if (allAreActive)
+                        {
                             activeStatusFilters.clear();
-                        } else {
+                        } else
+                        {
                             knownStatuses.forEach(function (knownStatus)
                             {
                                 activeStatusFilters.add(knownStatus);
@@ -1499,9 +1554,11 @@
                         return;
                     }
 
-                    if (activeStatusFilters.has(status)) {
+                    if (activeStatusFilters.has(status))
+                    {
                         activeStatusFilters.delete(status);
-                    } else {
+                    } else
+                    {
                         activeStatusFilters.add(status);
                     }
 
