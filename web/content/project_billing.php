@@ -400,7 +400,6 @@ function fetchProjectInvoiceBuckets(
     }
 
     $overdueLines = [];
-    $upcomingWeekLines = [];
     $upcomingMonthLines = [];
     $upcomingYearLines = [];
     $allLines = [];
@@ -411,8 +410,7 @@ function fetchProjectInvoiceBuckets(
     $pageIndex = max(1, (int) ($_GET['page'] ?? 1));
     $skip = ($pageIndex - 1) * PROJECT_BILLING_CHUNK_SIZE;
 
-    $weekEnd = date('Y-m-d', strtotime($today . ' +7 days'));
-    $monthEnd = date('Y-m-d', strtotime($today . ' +1 month'));
+    $monthEnd = date('Y-m-d', strtotime($today . ' +6 months'));
     $yearEnd = date('Y-m-d', strtotime($today . ' +1 year'));
     $streamMode = isset($_GET['stream']) && (string) $_GET['stream'] === '1';
 
@@ -443,8 +441,6 @@ function fetchProjectInvoiceBuckets(
 
             if ($planningDate <= $today) {
                 $overdueLines[] = $line;
-            } elseif ($planningDate <= $weekEnd) {
-                $upcomingWeekLines[] = $line;
             } elseif ($planningDate <= $monthEnd) {
                 $upcomingMonthLines[] = $line;
             } elseif ($planningDate <= $yearEnd) {
@@ -474,14 +470,14 @@ function fetchProjectInvoiceBuckets(
             $limitReached
         );
 
-        $upcomingWeekLines = mergeCompanyRowsForWindow(
+        $upcomingMonthLines = mergeCompanyRowsForWindow(
             $companyNames,
             $companyEnvironmentMap,
             $baseUrl,
             $activeEnvironments,
             $auth,
             date('Y-m-d', strtotime($today . ' +1 day')),
-            $weekEnd,
+            $monthEnd,
             false,
             $skip,
             $hideSapImports,
@@ -491,39 +487,7 @@ function fetchProjectInvoiceBuckets(
             $limitReached
         );
 
-        if (empty($upcomingWeekLines) && !$limitReached) {
-            $monthStart = date('Y-m-d', strtotime($weekEnd . ' +1 day'));
-            $monthWindows = buildWeeklyWindows($monthStart, $monthEnd);
-            foreach ($monthWindows as $window) {
-                if ($limitReached) {
-                    break;
-                }
-
-                $windowRows = mergeCompanyRowsForWindow(
-                    $companyNames,
-                    $companyEnvironmentMap,
-                    $baseUrl,
-                    $activeEnvironments,
-                    $auth,
-                    $window[0],
-                    $window[1],
-                    false,
-                    $skip,
-                    $hideSapImports,
-                    $debugCompanyResults,
-                    $firstErrorMessage,
-                    $callCount,
-                    $limitReached
-                );
-
-                if (!empty($windowRows)) {
-                    $upcomingMonthLines = $windowRows;
-                    break;
-                }
-            }
-        }
-
-        if (empty($upcomingWeekLines) && empty($upcomingMonthLines) && !$limitReached) {
+        if (empty($upcomingMonthLines) && !$limitReached) {
             $yearStart = date('Y-m-d', strtotime($monthEnd . ' +1 day'));
             $yearWindows = buildWeeklyWindows($yearStart, $yearEnd);
             foreach ($yearWindows as $window) {
@@ -555,7 +519,7 @@ function fetchProjectInvoiceBuckets(
             }
         }
 
-        if (empty($upcomingWeekLines) && empty($upcomingMonthLines) && empty($upcomingYearLines) && !$limitReached) {
+        if (empty($upcomingMonthLines) && empty($upcomingYearLines) && !$limitReached) {
             $fallbackStart = date('Y-m-d', strtotime($yearEnd . ' +1 day'));
             for ($weekIndex = 0; $weekIndex < PROJECT_BILLING_FALLBACK_ALL_MAX_WEEKS; $weekIndex++) {
                 if ($limitReached) {
@@ -592,7 +556,6 @@ function fetchProjectInvoiceBuckets(
 
     if (
         empty($overdueLines)
-        && empty($upcomingWeekLines)
         && empty($upcomingMonthLines)
         && empty($upcomingYearLines)
         && empty($allLines)
@@ -603,7 +566,7 @@ function fetchProjectInvoiceBuckets(
 
     return [
         'overdue' => $overdueLines,
-        'upcoming_week' => $upcomingWeekLines,
+        'upcoming_week' => [],
         'upcoming_month' => $upcomingMonthLines,
         'upcoming_year' => $upcomingYearLines,
         'all' => $allLines,
@@ -611,7 +574,6 @@ function fetchProjectInvoiceBuckets(
         'available_companies' => $availableCompanies,
         'company_environment_map' => $companyEnvironmentMap,
         'selected_company_environment' => $selectedCompanyEnvironment,
-        'week_end' => $weekEnd,
         'month_end' => $monthEnd,
         'year_end' => $yearEnd,
         'debug_fetch_all_rules' => $debugFetchAllRules,

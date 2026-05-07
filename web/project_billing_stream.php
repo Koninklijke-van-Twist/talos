@@ -16,14 +16,6 @@ require_once __DIR__ . '/odata.php';
 
 function selectUpcomingBucket(array $buckets): array
 {
-    if (!empty($buckets['upcoming_week'])) {
-        return [
-            'rows' => $buckets['upcoming_week'],
-            'title' => LOC('section.upcoming'),
-            'window_label' => LOC('section.upcoming_week'),
-        ];
-    }
-
     if (!empty($buckets['upcoming_month'])) {
         return [
             'rows' => $buckets['upcoming_month'],

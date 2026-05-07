@@ -81,11 +81,7 @@ try {
 
     $pendingInvoiceLines = $buckets['overdue'];
 
-    if (!empty($buckets['upcoming_week'])) {
-        $upcomingInvoiceLines = $buckets['upcoming_week'];
-        $upcomingWindowLabel = LOC('section.upcoming_week');
-        $upcomingSectionTitle = LOC('section.upcoming');
-    } elseif (!empty($buckets['upcoming_month'])) {
+    if (!empty($buckets['upcoming_month'])) {
         $upcomingInvoiceLines = $buckets['upcoming_month'];
         $upcomingWindowLabel = LOC('section.upcoming_month');
         $upcomingSectionTitle = LOC('section.upcoming');
@@ -99,7 +95,7 @@ try {
         $upcomingSectionTitle = LOC('section.all_rules');
     }
 
-    if (!empty($upcomingInvoiceLines) && $upcomingWindowLabel !== LOC('section.upcoming_week')) {
+    if (!empty($upcomingInvoiceLines) && $upcomingWindowLabel !== LOC('section.upcoming_month')) {
         $batchMinDate = '';
         $batchMaxDate = '';
         foreach ($upcomingInvoiceLines as $line) {
