@@ -80,6 +80,8 @@ class LocalizationTest extends TestCase
         $_SESSION['lang'] = 'nl';
 
         $this->assertSame('Project Manager', LOC('table.project_manager'));
-        $this->assertSame('Status', LOC('table.jobcard_status'));
+        $this->assertSame('Projectstatus', LOC('table.jobcard_status'));
+        $this->assertSame('Aangemaakt door', LOC('table.accountmanager'));
+        $this->assertSame('Quantity', LOC('table.quantity_to_invoice'));
     }
 }

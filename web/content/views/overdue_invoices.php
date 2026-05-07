@@ -328,6 +328,29 @@
             gap: 0.5rem;
         }
 
+        .live-select-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .live-select-filters label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1a2a44;
+            margin-right: 0;
+        }
+
+        .live-select-filters select {
+            padding: 0.35rem 0.55rem;
+            border: 1px solid #c7ced9;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 0.86rem;
+            max-width: 220px;
+        }
+
         .status-filter-btn {
             padding: 0.35rem 0.75rem;
             border: 2px solid #d0d7e2;
@@ -631,6 +654,12 @@
                 data-all-label="<?= h(LOC('filter.status_all')) ?>">
                 <label><?= h(LOC('filter.status')) ?>:</label>
                 <div class="status-filter-list" id="status-filter-list"></div>
+                <div class="live-select-filters">
+                    <label for="project-manager-filter"><?= h(LOC('filter.project_manager')) ?>:</label>
+                    <select id="project-manager-filter" data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"></select>
+                    <label for="created-by-filter"><?= h(LOC('filter.created_by')) ?>:</label>
+                    <select id="created-by-filter" data-all-label="<?= h(LOC('filter.created_by_all')) ?>"></select>
+                </div>
             </div>
 
             <div class="search-bar" id="search-bar">
@@ -666,7 +695,6 @@
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
                                 <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
                                 <th data-col="project_manager"><?= h(LOC('table.project_manager')) ?></th>
-                                <th data-col="jobcard_status"><?= h(LOC('table.jobcard_status')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_overdue')) ?></th>
@@ -675,6 +703,7 @@
                                 <th data-col="customer"><?= h(LOC('table.customer')) ?></th>
                                 <th data-col="document_no"><?= h(LOC('table.document_no')) ?></th>
                                 <th data-col="work_order"><?= h(LOC('table.work_order')) ?></th>
+                                <th data-col="jobcard_status"><?= h(LOC('table.jobcard_status')) ?></th>
                                 <?php if ($showCompanyColumn): ?>
                                     <th data-col="company"><?= h(LOC('table.company')) ?></th>
                                 <?php endif; ?>
@@ -723,7 +752,6 @@
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
                                 <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
                                 <th data-col="project_manager"><?= h(LOC('table.project_manager')) ?></th>
-                                <th data-col="jobcard_status"><?= h(LOC('table.jobcard_status')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_until_due')) ?></th>
@@ -732,6 +760,7 @@
                                 <th data-col="customer"><?= h(LOC('table.customer')) ?></th>
                                 <th data-col="document_no"><?= h(LOC('table.document_no')) ?></th>
                                 <th data-col="work_order"><?= h(LOC('table.work_order')) ?></th>
+                                <th data-col="jobcard_status"><?= h(LOC('table.jobcard_status')) ?></th>
                                 <?php if ($showCompanyColumn): ?>
                                     <th data-col="company"><?= h(LOC('table.company')) ?></th>
                                 <?php endif; ?>
@@ -821,6 +850,8 @@
             const jsonInspectorContentEl = document.getElementById('json-inspector-content');
             const statusFilterButtonsEl = document.getElementById('status-filter-buttons');
             const statusFilterListEl = document.getElementById('status-filter-list');
+            const projectManagerFilterEl = document.getElementById('project-manager-filter');
+            const createdByFilterEl = document.getElementById('created-by-filter');
             const searchInputEl = document.getElementById('table-search');
             const seenOverdueRowKeys = new Set();
             const seenUpcomingRowKeys = new Set();
@@ -844,6 +875,8 @@
                 statusOpenLabel: <?= json_encode(LOC('status.open'), JSON_UNESCAPED_UNICODE) ?>,
                 statusCheckedLabel: <?= json_encode(LOC('status.checked'), JSON_UNESCAPED_UNICODE) ?>,
                 statusPlannedLabel: <?= json_encode(LOC('status.planned'), JSON_UNESCAPED_UNICODE) ?>,
+                projectManagerAllLabel: <?= json_encode(LOC('filter.project_manager_all'), JSON_UNESCAPED_UNICODE) ?>,
+                createdByAllLabel: <?= json_encode(LOC('filter.created_by_all'), JSON_UNESCAPED_UNICODE) ?>,
                 canInspectRows: <?= $canInspectRows ? 'true' : 'false' ?>
             };
 
@@ -1026,6 +1059,8 @@
 
             const activeStatusFilters = new Set();
             let activeSearchQuery = '';
+            let activeProjectManager = '';
+            let activeCreatedBy = '';
             let knownStatuses = [];
 
             function escapeHtml (value)
@@ -1319,6 +1354,7 @@
                 if ((addedOverdue + addedUpcoming) > 0)
                 {
                     syncStatusFiltersFromRows();
+                    syncLiveFiltersFromRows();
                     updateRowVisibilityBasedOnStatus();
                     updateColumnVisibility();
                     bindRowInspector(overdueRowsEl);
@@ -1369,6 +1405,7 @@
                 initSeenKeys(upcomingRowsEl, seenUpcomingRowKeys);
                 sortOverdueRowsByDaysDesc();
                 syncStatusFiltersFromRows();
+                syncLiveFiltersFromRows();
                 updateRowVisibilityBasedOnStatus();
                 updateColumnVisibility();
 
@@ -1446,6 +1483,64 @@
                 return row.textContent.toLowerCase().indexOf(activeSearchQuery) !== -1;
             }
 
+            function collectUniqueRowAttributeValues (attributeName)
+            {
+                const values = new Set();
+                [overdueRowsEl, upcomingRowsEl].forEach(function (tbodyEl)
+                {
+                    if (!tbodyEl)
+                    {
+                        return;
+                    }
+
+                    const rows = tbodyEl.querySelectorAll('tr[data-row-key]');
+                    rows.forEach(function (row)
+                    {
+                        const value = String(row.getAttribute(attributeName) || '').trim();
+                        if (value !== '')
+                        {
+                            values.add(value);
+                        }
+                    });
+                });
+
+                return Array.from(values).sort(function (left, right)
+                {
+                    return left.localeCompare(right);
+                });
+            }
+
+            function renderLiveFilterSelectOptions (selectEl, allLabel, values)
+            {
+                if (!selectEl)
+                {
+                    return;
+                }
+
+                const previousValue = String(selectEl.value || '');
+                let html = '<option value="">' + escapeHtml(allLabel) + '</option>';
+                values.forEach(function (value)
+                {
+                    html += '<option value="' + escapeHtml(value) + '">' + escapeHtml(value) + '</option>';
+                });
+                selectEl.innerHTML = html;
+
+                const canRestore = previousValue !== '' && values.indexOf(previousValue) !== -1;
+                selectEl.value = canRestore ? previousValue : '';
+            }
+
+            function syncLiveFiltersFromRows ()
+            {
+                const projectManagers = collectUniqueRowAttributeValues('data-project-manager');
+                const createdByValues = collectUniqueRowAttributeValues('data-created-by');
+
+                renderLiveFilterSelectOptions(projectManagerFilterEl, config.projectManagerAllLabel, projectManagers);
+                renderLiveFilterSelectOptions(createdByFilterEl, config.createdByAllLabel, createdByValues);
+
+                activeProjectManager = projectManagerFilterEl ? String(projectManagerFilterEl.value || '') : '';
+                activeCreatedBy = createdByFilterEl ? String(createdByFilterEl.value || '') : '';
+            }
+
             function updateRowVisibilityBasedOnStatus ()
             {
                 if (!overdueRowsEl && !upcomingRowsEl)
@@ -1473,7 +1568,11 @@
                         const status = String(statusCell.getAttribute('data-status') || '');
                         const passesStatus = activeStatusFilters.has(status);
                         const passesSearch = rowMatchesSearch(row);
-                        row.style.display = (passesStatus && passesSearch) ? '' : 'none';
+                        const projectManager = String(row.getAttribute('data-project-manager') || '');
+                        const createdBy = String(row.getAttribute('data-created-by') || '');
+                        const passesProjectManager = activeProjectManager === '' || projectManager === activeProjectManager;
+                        const passesCreatedBy = activeCreatedBy === '' || createdBy === activeCreatedBy;
+                        row.style.display = (passesStatus && passesSearch && passesProjectManager && passesCreatedBy) ? '' : 'none';
                     });
                 });
 
@@ -1570,6 +1669,24 @@
             bindStatusFilterButtons();
             bindRowInspector(overdueRowsEl);
             bindRowInspector(upcomingRowsEl);
+
+            if (projectManagerFilterEl)
+            {
+                projectManagerFilterEl.addEventListener('change', function ()
+                {
+                    activeProjectManager = String(projectManagerFilterEl.value || '');
+                    updateRowVisibilityBasedOnStatus();
+                });
+            }
+
+            if (createdByFilterEl)
+            {
+                createdByFilterEl.addEventListener('change', function ()
+                {
+                    activeCreatedBy = String(createdByFilterEl.value || '');
+                    updateRowVisibilityBasedOnStatus();
+                });
+            }
 
             let searchDebounceTimer = null;
             if (searchInputEl)

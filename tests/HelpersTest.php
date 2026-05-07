@@ -198,10 +198,16 @@ class HelpersTest extends TestCase
             'Line_Amount' => 10,
             'KVT_Status_Work_Order' => 'Open',
             'User_ID' => 'KVT\\CVRIJ',
+            '_project_manager' => 'PM User',
+            '_jobcard_status' => 'Released',
+            'LVS_Work_Order_No' => 'WO-1',
             '_company' => 'KVT',
         ];
 
         $html = renderInvoiceTableRow($line, true, true, false);
         $this->assertStringContainsString('data-col="accountmanager">CVRIJ</td>', $html);
+        $this->assertStringContainsString('data-created-by="CVRIJ"', $html);
+        $this->assertStringContainsString('data-project-manager="PM User"', $html);
+        $this->assertStringContainsString('data-col="work_order">WO-1</td><td data-col="jobcard_status">Released</td>', $html);
     }
 }

@@ -194,13 +194,17 @@ function renderInvoiceTableRow(
     $status = (string) (($line['KVT_Status_Work_Order'] ?? '') !== '' ? ($line['KVT_Status_Work_Order'] ?? '') : ($line['Status'] ?? 'Open'));
     $statusBadge = renderStatusBadge($status);
     $accountManager = extractAccountManagerFromUserId((string) ($line['User_ID'] ?? ''));
+    $projectManager = (string) ($line['_project_manager'] ?? '');
+    $jobcardStatus = (string) ($line['_jobcard_status'] ?? '');
+
+    $rowAttributes .= ' data-created-by="' . h($accountManager) . '"';
+    $rowAttributes .= ' data-project-manager="' . h($projectManager) . '"';
 
     $html = '<tr ' . $rowAttributes . $rowClass . '>'
         . '<td data-col="job">' . h($jobNo) . '</td>'
         . '<td data-col="status">' . $statusBadge . '</td>'
         . '<td data-col="accountmanager">' . h($accountManager) . '</td>'
-           . '<td data-col="project_manager">' . h((string) ($line['_project_manager'] ?? '')) . '</td>'
-           . '<td data-col="jobcard_status">' . h((string) ($line['_jobcard_status'] ?? '')) . '</td>'
+           . '<td data-col="project_manager">' . h($projectManager) . '</td>'
         . '<td data-col="description">' . h((string) ($line['Description'] ?? '')) . '</td>'
         . '<td data-col="planning_date">' . h(formatDate($planningDateRaw)) . '</td>'
         . '<td data-col="days">' . $badge . '</td>'
@@ -208,7 +212,8 @@ function renderInvoiceTableRow(
         . '<td data-col="amount" class="amount">' . h(formatCurrency($lineAmount)) . '</td>'
         . '<td data-col="customer">' . h($customerNo) . '</td>'
         . '<td data-col="document_no">' . h((string) ($line['Document_No'] ?? '')) . '</td>'
-        . '<td data-col="work_order">' . h((string) ($line['LVS_Work_Order_No'] ?? '')) . '</td>';
+        . '<td data-col="work_order">' . h((string) ($line['LVS_Work_Order_No'] ?? '')) . '</td>'
+        . '<td data-col="jobcard_status">' . h($jobcardStatus) . '</td>';
 
     if ($includeCompanyColumn) {
         $html .= '<td data-col="company">' . h($company) . '</td>';

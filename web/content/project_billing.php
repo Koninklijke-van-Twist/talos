@@ -410,8 +410,6 @@ function fetchProjectInvoiceBuckets(
     $pageIndex = max(1, (int) ($_GET['page'] ?? 1));
     $skip = ($pageIndex - 1) * PROJECT_BILLING_CHUNK_SIZE;
 
-    $monthEnd = date('Y-m-d', strtotime($today . ' +6 months'));
-    $yearEnd = date('Y-m-d', strtotime($today . ' +1 year'));
     $streamMode = isset($_GET['stream']) && (string) $_GET['stream'] === '1';
 
     if ($debugFetchAllRules || $streamMode) {
@@ -432,7 +430,6 @@ function fetchProjectInvoiceBuckets(
             $limitReached
         );
 
-        $futureLines = [];
         foreach ($allLines as $line) {
             $planningDate = (string) ($line['Planning_Date'] ?? '');
             if ($planningDate === '') {
@@ -441,15 +438,11 @@ function fetchProjectInvoiceBuckets(
 
             if ($planningDate <= $today) {
                 $overdueLines[] = $line;
-            } elseif ($planningDate <= $monthEnd) {
-                $upcomingMonthLines[] = $line;
-            } elseif ($planningDate <= $yearEnd) {
-                $upcomingYearLines[] = $line;
             } else {
-                $futureLines[] = $line;
+                $upcomingMonthLines[] = $line;
             }
         }
-        $allLines = $futureLines;
+        $allLines = [];
     } else {
         $overdueEnd = $today;
 
@@ -477,7 +470,7 @@ function fetchProjectInvoiceBuckets(
             $activeEnvironments,
             $auth,
             date('Y-m-d', strtotime($today . ' +1 day')),
-            $monthEnd,
+            null,
             false,
             $skip,
             $hideSapImports,
@@ -486,72 +479,6 @@ function fetchProjectInvoiceBuckets(
             $callCount,
             $limitReached
         );
-
-        if (empty($upcomingMonthLines) && !$limitReached) {
-            $yearStart = date('Y-m-d', strtotime($monthEnd . ' +1 day'));
-            $yearWindows = buildWeeklyWindows($yearStart, $yearEnd);
-            foreach ($yearWindows as $window) {
-                if ($limitReached) {
-                    break;
-                }
-
-                $windowRows = mergeCompanyRowsForWindow(
-                    $companyNames,
-                    $companyEnvironmentMap,
-                    $baseUrl,
-                    $activeEnvironments,
-                    $auth,
-                    $window[0],
-                    $window[1],
-                    false,
-                    $skip,
-                    $hideSapImports,
-                    $debugCompanyResults,
-                    $firstErrorMessage,
-                    $callCount,
-                    $limitReached
-                );
-
-                if (!empty($windowRows)) {
-                    $upcomingYearLines = $windowRows;
-                    break;
-                }
-            }
-        }
-
-        if (empty($upcomingMonthLines) && empty($upcomingYearLines) && !$limitReached) {
-            $fallbackStart = date('Y-m-d', strtotime($yearEnd . ' +1 day'));
-            for ($weekIndex = 0; $weekIndex < PROJECT_BILLING_FALLBACK_ALL_MAX_WEEKS; $weekIndex++) {
-                if ($limitReached) {
-                    break;
-                }
-
-                $windowStart = date('Y-m-d', strtotime($fallbackStart . ' +' . ($weekIndex * 7) . ' days'));
-                $windowEnd = date('Y-m-d', strtotime($windowStart . ' +6 days'));
-
-                $windowRows = mergeCompanyRowsForWindow(
-                    $companyNames,
-                    $companyEnvironmentMap,
-                    $baseUrl,
-                    $activeEnvironments,
-                    $auth,
-                    $windowStart,
-                    $windowEnd,
-                    false,
-                    $skip,
-                    $hideSapImports,
-                    $debugCompanyResults,
-                    $firstErrorMessage,
-                    $callCount,
-                    $limitReached
-                );
-
-                if (!empty($windowRows)) {
-                    $allLines = $windowRows;
-                    break;
-                }
-            }
-        }
     }
 
     if (
@@ -574,8 +501,8 @@ function fetchProjectInvoiceBuckets(
         'available_companies' => $availableCompanies,
         'company_environment_map' => $companyEnvironmentMap,
         'selected_company_environment' => $selectedCompanyEnvironment,
-        'month_end' => $monthEnd,
-        'year_end' => $yearEnd,
+        'month_end' => null,
+        'year_end' => null,
         'debug_fetch_all_rules' => $debugFetchAllRules,
         'debug_company_results' => array_values($debugCompanyResults),
         'is_partial' => $limitReached,
