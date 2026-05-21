@@ -208,6 +208,7 @@ class HelpersTest extends TestCase
         $this->assertStringContainsString('data-col="accountmanager">CVRIJ</td>', $html);
         $this->assertStringContainsString('data-created-by="CVRIJ"', $html);
         $this->assertStringContainsString('data-project-manager="PM User"', $html);
+        $this->assertStringContainsString('data-col="cost_center_code">', $html);
         $this->assertStringContainsString('data-col="work_order">WO-1</td><td data-col="jobcard_status">Released</td>', $html);
     }
 }

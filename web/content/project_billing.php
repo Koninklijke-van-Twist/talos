@@ -93,7 +93,7 @@ function filterSapImportRows(array $rows, bool $hideSapImports): array
     }));
 }
 
-function fetchJobCardsByJobNumbers(
+function fetchProjectDetailsByJobNumbers(
     string $baseUrl,
     string $environment,
     array $auth,
@@ -116,35 +116,37 @@ function fetchJobCardsByJobNumbers(
     );
     $filterClause = '(' . implode(' or ', $filterParts) . ')';
 
-    $queryUrl = $companyBaseUrl . 'JobCard'
+    $queryUrl = $companyBaseUrl . 'AppProjecten'
         . '?$filter=' . rawurlencode($filterClause)
-        . '&$select=No,Project_Manager,Status';
+        . '&$select=No,Project_Manager,LVS_Global_Dimension_1_Code,Status';
 
-    $jobCards = odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
+    $projects = odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
 
     $indexed = [];
-    foreach ($jobCards as $jobCard) {
-        $no = (string) ($jobCard['No'] ?? '');
+    foreach ($projects as $project) {
+        $no = (string) ($project['No'] ?? '');
         if ($no !== '') {
-            $indexed[$no] = $jobCard;
+            $indexed[$no] = $project;
         }
     }
 
     return $indexed;
 }
 
-function enrichRowsWithJobCardData(array $rows, array $jobCardsByNo): array
+function enrichRowsWithProjectData(array $rows, array $projectsByNo): array
 {
     foreach ($rows as &$row) {
         $jobNo = (string) ($row['Job_No'] ?? '');
-        if ($jobNo !== '' && isset($jobCardsByNo[$jobNo])) {
-            $jobCard = $jobCardsByNo[$jobNo];
-            $row['_project_manager'] = (string) ($jobCard['Project_Manager'] ?? '');
-            $row['_jobcard_status'] = (string) ($jobCard['Status'] ?? '');
+        if ($jobNo !== '' && isset($projectsByNo[$jobNo])) {
+            $project = $projectsByNo[$jobNo];
+            $row['_project_manager'] = (string) ($project['Project_Manager'] ?? '');
+            $row['_cost_center_code'] = (string) ($project['LVS_Global_Dimension_1_Code'] ?? '');
+            $row['_jobcard_status'] = (string) ($project['Status'] ?? '');
             continue;
         }
 
         $row['_project_manager'] = '';
+        $row['_cost_center_code'] = '';
         $row['_jobcard_status'] = '';
     }
     unset($row);
@@ -258,14 +260,14 @@ function mergeCompanyRowsForWindow(
 
                 if (!empty($jobNumbers)) {
                     $callCount++;
-                    $jobCardData = fetchJobCardsByJobNumbers(
+                    $projectData = fetchProjectDetailsByJobNumbers(
                         $baseUrl,
                         $environment,
                         $authForEnvironment,
                         $companyName,
                         $jobNumbers
                     );
-                    $rows = enrichRowsWithJobCardData($rows, $jobCardData);
+                    $rows = enrichRowsWithProjectData($rows, $projectData);
                 }
             }
 

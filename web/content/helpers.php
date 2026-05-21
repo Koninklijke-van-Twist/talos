@@ -199,12 +199,14 @@ function renderInvoiceTableRow(
 
     $rowAttributes .= ' data-created-by="' . h($accountManager) . '"';
     $rowAttributes .= ' data-project-manager="' . h($projectManager) . '"';
+    $rowAttributes .= ' data-cost-center-code="' . h((string) ($line['_cost_center_code'] ?? '')) . '"';
 
     $html = '<tr ' . $rowAttributes . $rowClass . '>'
         . '<td data-col="job">' . h($jobNo) . '</td>'
         . '<td data-col="status">' . $statusBadge . '</td>'
         . '<td data-col="accountmanager">' . h($accountManager) . '</td>'
            . '<td data-col="project_manager">' . h($projectManager) . '</td>'
+        . '<td data-col="cost_center_code">' . h((string) ($line["_cost_center_code"] ?? '')) . '</td>'
         . '<td data-col="description">' . h((string) ($line['Description'] ?? '')) . '</td>'
         . '<td data-col="planning_date">' . h(formatDate($planningDateRaw)) . '</td>'
         . '<td data-col="days">' . $badge . '</td>'

@@ -657,6 +657,8 @@
                 <div class="live-select-filters">
                     <label for="project-manager-filter"><?= h(LOC('filter.project_manager')) ?>:</label>
                     <select id="project-manager-filter" data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"></select>
+                    <label for="cost-center-code-filter"><?= h(LOC('filter.cost_center_code')) ?>:</label>
+                    <select id="cost-center-code-filter" data-all-label="<?= h(LOC('filter.cost_center_code_all')) ?>"></select>
                     <label for="created-by-filter"><?= h(LOC('filter.created_by')) ?>:</label>
                     <select id="created-by-filter" data-all-label="<?= h(LOC('filter.created_by_all')) ?>"></select>
                 </div>
@@ -695,6 +697,7 @@
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
                                 <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
                                 <th data-col="project_manager"><?= h(LOC('table.project_manager')) ?></th>
+                                <th data-col="cost_center_code"><?= h(LOC('table.cost_center_code')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_overdue')) ?></th>
@@ -714,7 +717,7 @@
                                 <?= renderInvoiceTableRow($line, true, $showCompanyColumn, $canInspectRows) ?>
                             <?php endforeach; ?>
                             <tr class="stream-loading-row" id="stream-loading-row-overdue" style="display:none;">
-                                <td colspan="<?= $showCompanyColumn ? '14' : '13' ?>">
+                                <td colspan="<?= $showCompanyColumn ? '15' : '14' ?>">
                                     <span class="stream-spinner"></span>
                                     <span id="stream-loading-text-overdue"><?= h(LOC('msg.stream_table_loading')) ?></span>
                                 </td>
@@ -752,6 +755,7 @@
                                 <th data-col="status"><?= h(LOC('table.status')) ?></th>
                                 <th data-col="accountmanager"><?= h(LOC('table.accountmanager')) ?></th>
                                 <th data-col="project_manager"><?= h(LOC('table.project_manager')) ?></th>
+                                <th data-col="cost_center_code"><?= h(LOC('table.cost_center_code')) ?></th>
                                 <th data-col="description"><?= h(LOC('table.description')) ?></th>
                                 <th data-col="planning_date"><?= h(LOC('table.planning_date')) ?></th>
                                 <th data-col="days"><?= h(LOC('table.days_until_due')) ?></th>
@@ -771,7 +775,7 @@
                                 <?= renderInvoiceTableRow($line, false, $showCompanyColumn, $canInspectRows) ?>
                             <?php endforeach; ?>
                             <tr class="stream-loading-row" id="stream-loading-row-upcoming" style="display:none;">
-                                <td colspan="<?= $showCompanyColumn ? '14' : '13' ?>">
+                                <td colspan="<?= $showCompanyColumn ? '15' : '14' ?>">
                                     <span class="stream-spinner"></span>
                                     <span id="stream-loading-text-upcoming"><?= h(LOC('msg.stream_table_loading')) ?></span>
                                 </td>
@@ -851,6 +855,7 @@
             const statusFilterButtonsEl = document.getElementById('status-filter-buttons');
             const statusFilterListEl = document.getElementById('status-filter-list');
             const projectManagerFilterEl = document.getElementById('project-manager-filter');
+            const costCenterCodeFilterEl = document.getElementById('cost-center-code-filter');
             const createdByFilterEl = document.getElementById('created-by-filter');
             const searchInputEl = document.getElementById('table-search');
             const seenOverdueRowKeys = new Set();
@@ -876,6 +881,7 @@
                 statusCheckedLabel: <?= json_encode(LOC('status.checked'), JSON_UNESCAPED_UNICODE) ?>,
                 statusPlannedLabel: <?= json_encode(LOC('status.planned'), JSON_UNESCAPED_UNICODE) ?>,
                 projectManagerAllLabel: <?= json_encode(LOC('filter.project_manager_all'), JSON_UNESCAPED_UNICODE) ?>,
+                costCenterCodeAllLabel: <?= json_encode(LOC('filter.cost_center_code_all'), JSON_UNESCAPED_UNICODE) ?>,
                 createdByAllLabel: <?= json_encode(LOC('filter.created_by_all'), JSON_UNESCAPED_UNICODE) ?>,
                 canInspectRows: <?= $canInspectRows ? 'true' : 'false' ?>
             };
@@ -1060,6 +1066,7 @@
             const activeStatusFilters = new Set();
             let activeSearchQuery = '';
             let activeProjectManager = '';
+            let activeCostCenterCode = '';
             let activeCreatedBy = '';
             let knownStatuses = [];
 
@@ -1532,12 +1539,15 @@
             function syncLiveFiltersFromRows ()
             {
                 const projectManagers = collectUniqueRowAttributeValues('data-project-manager');
+                const costCenterCodes = collectUniqueRowAttributeValues('data-cost-center-code');
                 const createdByValues = collectUniqueRowAttributeValues('data-created-by');
 
                 renderLiveFilterSelectOptions(projectManagerFilterEl, config.projectManagerAllLabel, projectManagers);
+                renderLiveFilterSelectOptions(costCenterCodeFilterEl, config.costCenterCodeAllLabel, costCenterCodes);
                 renderLiveFilterSelectOptions(createdByFilterEl, config.createdByAllLabel, createdByValues);
 
                 activeProjectManager = projectManagerFilterEl ? String(projectManagerFilterEl.value || '') : '';
+                activeCostCenterCode = costCenterCodeFilterEl ? String(costCenterCodeFilterEl.value || '') : '';
                 activeCreatedBy = createdByFilterEl ? String(createdByFilterEl.value || '') : '';
             }
 
@@ -1569,10 +1579,12 @@
                         const passesStatus = activeStatusFilters.has(status);
                         const passesSearch = rowMatchesSearch(row);
                         const projectManager = String(row.getAttribute('data-project-manager') || '');
+                        const costCenterCode = String(row.getAttribute('data-cost-center-code') || '');
                         const createdBy = String(row.getAttribute('data-created-by') || '');
                         const passesProjectManager = activeProjectManager === '' || projectManager === activeProjectManager;
+                        const passesCostCenterCode = activeCostCenterCode === '' || costCenterCode === activeCostCenterCode;
                         const passesCreatedBy = activeCreatedBy === '' || createdBy === activeCreatedBy;
-                        row.style.display = (passesStatus && passesSearch && passesProjectManager && passesCreatedBy) ? '' : 'none';
+                        row.style.display = (passesStatus && passesSearch && passesProjectManager && passesCostCenterCode && passesCreatedBy) ? '' : 'none';
                     });
                 });
 
@@ -1675,6 +1687,15 @@
                 projectManagerFilterEl.addEventListener('change', function ()
                 {
                     activeProjectManager = String(projectManagerFilterEl.value || '');
+                    updateRowVisibilityBasedOnStatus();
+                });
+            }
+
+            if (costCenterCodeFilterEl)
+            {
+                costCenterCodeFilterEl.addEventListener('change', function ()
+                {
+                    activeCostCenterCode = String(costCenterCodeFilterEl.value || '');
                     updateRowVisibilityBasedOnStatus();
                 });
             }

@@ -25,6 +25,77 @@ class ProjectBillingTest extends TestCase
     {
         unset($GLOBALS['__projectBillingTestLastUrl']);
         unset($GLOBALS['__projectBillingTestOdataResponder']);
+        unset($GLOBALS['__projectBillingTestUrls']);
+    }
+
+    public function testFetchRowsEnrichesProjectCostCenterCodeFromAppProjecten(): void
+    {
+        $GLOBALS['__projectBillingTestUrls'] = [];
+        $GLOBALS['__projectBillingTestOdataResponder'] = static function (string $url): array {
+            $GLOBALS['__projectBillingTestUrls'][] = $url;
+
+            if (str_contains($url, 'FactureerbareProjectPlanningsRegels')) {
+                return [[
+                    'Job_No' => 'JOB-001',
+                    'Line_No' => 10,
+                    'Planning_Date' => '2026-01-15',
+                    'Description' => 'Test line',
+                    'Document_No' => 'DOC-1',
+                    'Qty_to_Invoice' => 1,
+                    'Line_Amount' => 100,
+                    'User_ID' => 'user@example.com',
+                    'KVT_Status_Work_Order' => 'Open',
+                ]];
+            }
+
+            if (str_contains($url, 'AppProjecten')) {
+                return [[
+                    'No' => 'JOB-001',
+                    'Project_Manager' => 'PM-01',
+                    'LVS_Global_Dimension_1_Code' => 'CC-42',
+                ]];
+            }
+
+            return [];
+        };
+
+        $debugCompanyResults = [];
+        $firstErrorMessage = null;
+        $callCount = 0;
+        $limitReached = false;
+
+        $rows = mergeCompanyRowsForWindow(
+            ['Company'],
+            ['Company' => 'env'],
+            'https://example.test',
+            ['env'],
+            ['username' => 'u', 'password' => 'p'],
+            '2026-01-01',
+            '2026-01-31',
+            false,
+            0,
+            false,
+            $debugCompanyResults,
+            $firstErrorMessage,
+            $callCount,
+            $limitReached
+        );
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('PM-01', (string) $rows[0]['_project_manager']);
+        $this->assertSame('CC-42', (string) $rows[0]['_cost_center_code']);
+
+        $urls = (array) ($GLOBALS['__projectBillingTestUrls'] ?? []);
+        $projectQueryUrl = '';
+        foreach ($urls as $url) {
+            if (str_contains($url, 'AppProjecten')) {
+                $projectQueryUrl = (string) $url;
+                break;
+            }
+        }
+
+        $this->assertNotSame('', $projectQueryUrl);
+        $this->assertStringContainsString('LVS_Global_Dimension_1_Code', rawurldecode($projectQueryUrl));
     }
 
     public function testFetchRowsAddsNoFilterForSpecificRuleTypes(): void
