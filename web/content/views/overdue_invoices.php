@@ -657,6 +657,7 @@
     $currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
     $canInspectRows = $currentUserEmail === '' || in_array($currentUserEmail, $ictUsers ?? [], true);
     $projectManagerDefault = trim((string) ($projectManagerDefaultSelection ?? ''));
+    $projectManagerFilterDefault = trim((string) ($projectManagerFilterDefaultSelection ?? ''));
     $allowedProjectManagerList = talosPmUniqueStrings((array) ($allowedProjectManagers ?? []));
     $allProjectManagerList = talosPmUniqueStrings((array) ($allProjectManagers ?? []));
     $projectManagerDisplayLookup = is_array($projectManagerDisplayMap ?? null) ? $projectManagerDisplayMap : [];
@@ -724,6 +725,12 @@
         <?php if ($adminFlashPayload !== null): ?>
             <div class="alert <?= ($adminFlashPayload['type'] ?? '') === 'success' ? 'alert-info' : 'alert-danger' ?>">
                 <?= h((string) ($adminFlashPayload['message'] ?? '')) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($isAdminUser) && trim((string) ($activeImpersonationManager ?? '')) !== ''): ?>
+            <div class="alert alert-info">
+                <?= h(LOC('pm_admin.impersonating_as', (string) ($activeImpersonationLabel !== '' ? $activeImpersonationLabel : $activeImpersonationManager))) ?>
             </div>
         <?php endif; ?>
 
@@ -812,7 +819,7 @@
                 <div class="live-select-filters">
                     <label for="project-manager-filter"><?= h(LOC('filter.project_manager')) ?>:</label>
                     <select id="project-manager-filter" data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"
-                        data-default="<?= h($projectManagerDefault) ?>"></select>
+                        data-default="<?= h($projectManagerFilterDefault) ?>"></select>
                     <label for="cost-center-code-filter"><?= h(LOC('filter.cost_center_code')) ?>:</label>
                     <select id="cost-center-code-filter"
                         data-all-label="<?= h(LOC('filter.cost_center_code_all')) ?>"></select>
@@ -1011,6 +1018,15 @@
                             <div id="pm-admin-children-list" class="pm-admin-children-list"></div>
                             <button type="submit" class="pm-admin-save"><?= h(LOC('pm_admin.save')) ?></button>
                         </form>
+                        <form method="post" id="pm-admin-impersonate-form" class="pm-admin-form">
+                            <input type="hidden" name="action" value="pm_admin_impersonate">
+                            <input type="hidden" name="impersonate_manager" id="pm-admin-impersonate-manager" value="">
+                            <button type="submit" id="pm-admin-impersonate-submit" class="pm-admin-save"><?= h(LOC('pm_admin.impersonate')) ?></button>
+                        </form>
+                        <form method="post" class="pm-admin-form">
+                            <input type="hidden" name="action" value="pm_admin_impersonate_clear">
+                            <button type="submit" class="pm-admin-save"><?= h(LOC('pm_admin.stop_impersonate')) ?></button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -1051,6 +1067,8 @@
             const pmAdminManagerListEl = document.getElementById('pm-admin-manager-list');
             const pmAdminChildrenListEl = document.getElementById('pm-admin-children-list');
             const pmAdminSelectedManagerEl = document.getElementById('pm-admin-selected-manager');
+            const pmAdminImpersonateManagerEl = document.getElementById('pm-admin-impersonate-manager');
+            const pmAdminImpersonateSubmitEl = document.getElementById('pm-admin-impersonate-submit');
             const seenOverdueRowKeys = new Set();
             const seenUpcomingRowKeys = new Set();
             const DYNAMIC_COLS = ['accountmanager', 'customer', 'document_no', 'work_order', 'company'];
@@ -1078,6 +1096,7 @@
                 createdByAllLabel: <?= json_encode(LOC('filter.created_by_all'), JSON_UNESCAPED_UNICODE) ?>,
                 canInspectRows: <?= $canInspectRows ? 'true' : 'false' ?>,
                 ownProjectManager: <?= json_encode($projectManagerDefault, JSON_UNESCAPED_UNICODE) ?>,
+                projectManagerDefaultFilter: <?= json_encode($projectManagerFilterDefault, JSON_UNESCAPED_UNICODE) ?>,
                 ownProjectManagerLabel: <?= json_encode($projectManagerOwnLabel, JSON_UNESCAPED_UNICODE) ?>,
                 allowedProjectManagers: <?= json_encode($allowedProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
                 allProjectManagers: <?= json_encode($allProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
@@ -1114,7 +1133,7 @@
                 return;
             }
 
-            console.log('[Talos auth debug]', <?= json_encode($authDebug, JSON_UNESCAPED_UNICODE) ?>);
+            //console.log('[Talos auth debug]', <?= json_encode($authDebug, JSON_UNESCAPED_UNICODE) ?>);
 
             if (manualPagerEl)
             {
@@ -1269,7 +1288,7 @@
 
             const activeStatusFilters = new Set();
             let activeSearchQuery = '';
-            let activeProjectManager = String(config.ownProjectManager || '');
+            let activeProjectManager = String(config.projectManagerDefaultFilter || '');
             let activeCostCenterCode = '';
             let activeCreatedBy = '';
             let knownStatuses = [];
@@ -1761,6 +1780,14 @@
 
                 const selectedManager = String(managerName || '');
                 pmAdminSelectedManagerEl.value = selectedManager;
+                if (pmAdminImpersonateManagerEl)
+                {
+                    pmAdminImpersonateManagerEl.value = selectedManager;
+                }
+                if (pmAdminImpersonateSubmitEl)
+                {
+                    pmAdminImpersonateSubmitEl.disabled = selectedManager === '';
+                }
 
                 if (selectedManager === '')
                 {
@@ -1989,7 +2016,6 @@
             {
                 const projectManagersFromRows = collectUniqueRowAttributeValues('data-project-manager');
                 const allowedSet = new Set((Array.isArray(config.allowedProjectManagers) ? config.allowedProjectManagers : []).map(normalizeText));
-                const ownManagerNormalized = normalizeText(config.ownProjectManager);
                 const ownManagerCode = String(config.ownProjectManager || '').trim();
                 const rowLabelMap = collectProjectManagerLabelMapFromRows();
 
@@ -2011,14 +2037,11 @@
                 const costCenterCodes = collectUniqueRowAttributeValues('data-cost-center-code');
                 const createdByValues = collectUniqueRowAttributeValues('data-created-by');
 
-                const shouldForceOwnManager = ownManagerNormalized !== ''
-                    && (activeProjectManager === '' || normalizeText(activeProjectManager) === ownManagerNormalized);
-
                 renderLiveFilterSelectOptions(
                     projectManagerFilterEl,
                     config.projectManagerAllLabel,
                     projectManagers,
-                    shouldForceOwnManager ? String(config.ownProjectManager || '') : '',
+                    activeProjectManager,
                     function (managerCode)
                     {
                         const ownLabel = String(config.ownProjectManagerLabel || '').trim();
@@ -2041,6 +2064,25 @@
                 activeProjectManager = projectManagerFilterEl ? String(projectManagerFilterEl.value || '') : '';
                 activeCostCenterCode = costCenterCodeFilterEl ? String(costCenterCodeFilterEl.value || '') : '';
                 activeCreatedBy = createdByFilterEl ? String(createdByFilterEl.value || '') : '';
+            }
+
+            function persistProjectManagerFilterPreference (managerCode)
+            {
+                const params = new URLSearchParams();
+                params.set('action', 'save_project_manager_filter');
+                if (String(managerCode || '').trim() !== '')
+                {
+                    params.set('project_manager', String(managerCode));
+                }
+
+                fetch(config.endpoint + '?' + params.toString(), {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).catch(function ()
+                {
+                    // Best effort persistence; UI filtering remains local.
+                });
             }
 
             function updateRowVisibilityBasedOnStatus ()
@@ -2180,6 +2222,7 @@
                 projectManagerFilterEl.addEventListener('change', function ()
                 {
                     activeProjectManager = String(projectManagerFilterEl.value || '');
+                    persistProjectManagerFilterPreference(activeProjectManager);
                     updateRowVisibilityBasedOnStatus();
                 });
             }

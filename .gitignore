@@ -12,3 +12,5 @@ vapid-keys/
 vendor/
 .phpunit.cache/
 .phpunit.result.cache
+
+web/content/data/php_errors/

@@ -40,6 +40,16 @@ class ProjectManagerScopeTest extends TestCase
         $this->assertSame(['Hunter van Twist' => 'kvtmdlive_aad'], $selected);
     }
 
+    public function testResolveProjectManagerSelectionMatchesCaseInsensitiveAndReturnsCanonical(): void
+    {
+        $allManagers = ['AV', 'JDJ'];
+
+        $resolved = talosPmResolveProjectManagerSelection($allManagers, 'av');
+
+        $this->assertSame('AV', $resolved);
+        $this->assertSame('', talosPmResolveProjectManagerSelection($allManagers, 'missing'));
+    }
+
     public function testResolveCurrentUserFromUserSetupUsesSalespersonCardFields(): void
     {
         $rows = [

@@ -55,12 +55,30 @@ $currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
 $isAdminUser = !empty($_SESSION['user']['admin'])
     || strcasecmp($currentUserEmail, 'localtester@kvt.nl') === 0;
 $canInspectRows = $currentUserEmail === '' || in_array($currentUserEmail, $ictUsers ?? [], true);
+$userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
 
 /**
  * Page load
  */
 
 header('Content-Type: application/json; charset=UTF-8');
+
+$streamAction = trim((string) ($_GET['action'] ?? ''));
+if ($streamAction === 'save_project_manager_filter') {
+    if (!isset($_SESSION['selected_project_manager_filter_by_user']) || !is_array($_SESSION['selected_project_manager_filter_by_user'])) {
+        $_SESSION['selected_project_manager_filter_by_user'] = [];
+    }
+
+    $value = trim((string) ($_GET['project_manager'] ?? ''));
+    if ($value === '' || $value === '__all__') {
+        $_SESSION['selected_project_manager_filter_by_user'][$userKey] = '';
+    } else {
+        $_SESSION['selected_project_manager_filter_by_user'][$userKey] = $value;
+    }
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 try {
     $buckets = fetchProjectInvoiceBuckets(
@@ -86,6 +104,36 @@ try {
     }
 
     $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $salespersonRows);
+
+    if ($isAdminUser) {
+        $projectManagerAssignments = talosPmLoadHierarchyAssignments();
+        $extraManagers = talosPmCollectManagerCandidates(
+            $salespersonRows,
+            talosPmCollectProjectManagersFromBuckets($buckets)
+        );
+        foreach ($projectManagerAssignments as $managerName => $children) {
+            $extraManagers[] = (string) $managerName;
+            foreach ((array) $children as $childName) {
+                $extraManagers[] = (string) $childName;
+            }
+        }
+
+        $allProjectManagers = talosPmUniqueStrings($extraManagers);
+        $requestedImpersonation = trim((string) ($_SESSION['pm_impersonation_by_user'][$userKey] ?? ''));
+        $activeImpersonationManager = talosPmResolveProjectManagerSelection($allProjectManagers, $requestedImpersonation);
+        if ($activeImpersonationManager !== '') {
+            $allowedProjectManagers = talosPmGetAllowedProjectManagers(
+                $projectManagerAssignments,
+                $activeImpersonationManager,
+                $allProjectManagers
+            );
+            if (empty($allowedProjectManagers)) {
+                $allowedProjectManagers = [$activeImpersonationManager];
+            }
+
+            $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
+        }
+    }
 
     if (!$isAdminUser) {
         $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($salespersonRows, $currentUserEmail);

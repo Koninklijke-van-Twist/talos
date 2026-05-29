@@ -274,6 +274,28 @@ function talosPmSelectSingleCompanyEnvironmentMap(array $companyEnvironmentMap, 
     return [$company => (string) $normalizedMap[$company]];
 }
 
+function talosPmResolveProjectManagerSelection(array $allProjectManagers, string $selection): string
+{
+    $requested = trim($selection);
+    if ($requested === '') {
+        return '';
+    }
+
+    $requestedKey = talosPmNormalizeName($requested);
+    foreach ($allProjectManagers as $managerValue) {
+        $manager = trim((string) $managerValue);
+        if ($manager === '') {
+            continue;
+        }
+
+        if (talosPmNormalizeName($manager) === $requestedKey) {
+            return $manager;
+        }
+    }
+
+    return '';
+}
+
 function talosPmResolveCurrentUserFromUserSetup(array $userSetupRows, string $email): array
 {
     $emailTrimmed = trim($email);

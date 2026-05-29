@@ -16,46 +16,77 @@ $isAdminUser = !empty($_SESSION['user']['admin'])
 if (!isset($_SESSION['pm_admin_flash_by_user']) || !is_array($_SESSION['pm_admin_flash_by_user'])) {
     $_SESSION['pm_admin_flash_by_user'] = [];
 }
+if (!isset($_SESSION['pm_impersonation_by_user']) || !is_array($_SESSION['pm_impersonation_by_user'])) {
+    $_SESSION['pm_impersonation_by_user'] = [];
+}
+
+$postAction = trim((string) ($_POST['action'] ?? ''));
 
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST'
-    && isset($_POST['action'])
-    && (string) $_POST['action'] === 'pm_admin_save'
+    && $postAction !== ''
     && $isAdminUser
 ) {
-    $selectedManager = trim((string) ($_POST['selected_manager'] ?? ''));
-    $selectedChildren = $_POST['assigned_project_managers'] ?? [];
-    if (!is_array($selectedChildren)) {
-        $selectedChildren = [];
-    }
-
-    $assignments = talosPmLoadHierarchyAssignments();
-    $assignResult = talosPmAssignChildren($assignments, $selectedManager, $selectedChildren);
-
     $flashPayload = [];
-    if (!empty($assignResult['ok'])) {
-        $saveOk = talosPmSaveHierarchyAssignments(
-            (array) ($assignResult['assignments'] ?? []),
-            $currentUserEmail
-        );
+    if ($postAction === 'pm_admin_save') {
+        $selectedManager = trim((string) ($_POST['selected_manager'] ?? ''));
+        $selectedChildren = $_POST['assigned_project_managers'] ?? [];
+        if (!is_array($selectedChildren)) {
+            $selectedChildren = [];
+        }
 
-        if ($saveOk) {
-            $flashPayload = [
-                'type' => 'success',
-                'message' => LOC('pm_admin.flash.saved'),
-            ];
+        $assignments = talosPmLoadHierarchyAssignments();
+        $assignResult = talosPmAssignChildren($assignments, $selectedManager, $selectedChildren);
+
+        if (!empty($assignResult['ok'])) {
+            $saveOk = talosPmSaveHierarchyAssignments(
+                (array) ($assignResult['assignments'] ?? []),
+                $currentUserEmail
+            );
+
+            if ($saveOk) {
+                $flashPayload = [
+                    'type' => 'success',
+                    'message' => LOC('pm_admin.flash.saved'),
+                ];
+            } else {
+                $flashPayload = [
+                    'type' => 'error',
+                    'message' => LOC('pm_admin.error.save_failed'),
+                ];
+            }
         } else {
+            $errorKey = (string) ($assignResult['error_key'] ?? 'pm_admin.error.save_failed');
+            $errorArgs = (array) ($assignResult['error_args'] ?? []);
             $flashPayload = [
                 'type' => 'error',
-                'message' => LOC('pm_admin.error.save_failed'),
+                'message' => LOC($errorKey, ...$errorArgs),
             ];
         }
+    } elseif ($postAction === 'pm_admin_impersonate') {
+        $selectedManager = trim((string) ($_POST['impersonate_manager'] ?? ''));
+        if ($selectedManager === '') {
+            $flashPayload = [
+                'type' => 'error',
+                'message' => LOC('pm_admin.error.missing_manager'),
+            ];
+        } else {
+            $_SESSION['pm_impersonation_by_user'][$userKey] = $selectedManager;
+            $flashPayload = [
+                'type' => 'success',
+                'message' => LOC('pm_admin.flash.impersonation_enabled'),
+            ];
+        }
+    } elseif ($postAction === 'pm_admin_impersonate_clear') {
+        unset($_SESSION['pm_impersonation_by_user'][$userKey]);
+        $flashPayload = [
+            'type' => 'success',
+            'message' => LOC('pm_admin.flash.impersonation_cleared'),
+        ];
     } else {
-        $errorKey = (string) ($assignResult['error_key'] ?? 'pm_admin.error.save_failed');
-        $errorArgs = (array) ($assignResult['error_args'] ?? []);
         $flashPayload = [
             'type' => 'error',
-            'message' => LOC($errorKey, ...$errorArgs),
+            'message' => LOC('pm_admin.error.save_failed'),
         ];
     }
 
@@ -74,6 +105,9 @@ if (!isset($_SESSION['selected_company_by_user']) || !is_array($_SESSION['select
 }
 if (!isset($_SESSION['selected_company_environment_by_user']) || !is_array($_SESSION['selected_company_environment_by_user'])) {
     $_SESSION['selected_company_environment_by_user'] = [];
+}
+if (!isset($_SESSION['selected_project_manager_filter_by_user']) || !is_array($_SESSION['selected_project_manager_filter_by_user'])) {
+    $_SESSION['selected_project_manager_filter_by_user'] = [];
 }
 
 $requestedCompany = trim((string) ($_GET['company'] ?? ''));
@@ -101,8 +135,14 @@ $allProjectManagers = [];
 $projectManagerAssignments = [];
 $projectManagerInvalidMatrix = [];
 $projectManagerDefaultSelection = '';
+$projectManagerFilterDefaultSelection = '';
 $projectManagerDisplayMap = [];
 $salespersonRowsForDisplay = [];
+$activeImpersonationManager = '';
+$activeImpersonationLabel = '';
+
+$hasStoredProjectManagerFilter = array_key_exists($userKey, $_SESSION['selected_project_manager_filter_by_user']);
+$storedProjectManagerFilter = trim((string) ($_SESSION['selected_project_manager_filter_by_user'][$userKey] ?? ''));
 
 /**
  * Page load
@@ -163,8 +203,34 @@ try {
 
         $allProjectManagers = talosPmUniqueStrings($extraManagers);
         $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($adminUserSetupRows, $allProjectManagers);
-        $allowedProjectManagers = $allProjectManagers;
-        $projectManagerDefaultSelection = '';
+
+        $requestedImpersonation = trim((string) ($_SESSION['pm_impersonation_by_user'][$userKey] ?? ''));
+        $activeImpersonationManager = talosPmResolveProjectManagerSelection($allProjectManagers, $requestedImpersonation);
+        if ($activeImpersonationManager === '' && $requestedImpersonation !== '') {
+            unset($_SESSION['pm_impersonation_by_user'][$userKey]);
+        }
+
+        if ($activeImpersonationManager !== '') {
+            $activeImpersonationLabel = (string) ($projectManagerDisplayMap[$activeImpersonationManager] ?? $activeImpersonationManager);
+            $projectManagerDefaultSelection = $activeImpersonationManager;
+            $allowedProjectManagers = talosPmGetAllowedProjectManagers(
+                $projectManagerAssignments,
+                $activeImpersonationManager,
+                $allProjectManagers
+            );
+            if (empty($allowedProjectManagers)) {
+                $allowedProjectManagers = [$activeImpersonationManager];
+            }
+
+            $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
+        } else {
+            $allowedProjectManagers = $allProjectManagers;
+            $projectManagerDefaultSelection = '';
+        }
+
+        if ($hasStoredProjectManagerFilter) {
+            $projectManagerFilterDefaultSelection = talosPmResolveProjectManagerSelection($allowedProjectManagers, $storedProjectManagerFilter);
+        }
     } else {
         $userSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
         $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($userSetupRows, $currentUserEmail);
@@ -195,6 +261,13 @@ try {
 
         if (empty($allowedProjectManagers)) {
             $allowedProjectManagers = [$projectManagerDefaultSelection];
+        }
+
+        if ($hasStoredProjectManagerFilter) {
+            $projectManagerFilterDefaultSelection = talosPmResolveProjectManagerSelection($allowedProjectManagers, $storedProjectManagerFilter);
+        } else {
+            // Managers with descendants start on "everyone" by default.
+            $projectManagerFilterDefaultSelection = count($allowedProjectManagers) > 1 ? '' : $projectManagerDefaultSelection;
         }
 
         $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
