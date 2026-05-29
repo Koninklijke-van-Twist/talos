@@ -667,6 +667,13 @@
     $projectManagerAssignmentMap = is_array($projectManagerAssignments ?? null) ? $projectManagerAssignments : [];
     $projectManagerInvalidMap = is_array($projectManagerInvalidMatrix ?? null) ? $projectManagerInvalidMatrix : [];
     $adminFlashPayload = is_array($adminFlash ?? null) ? $adminFlash : null;
+    $authDebug = [
+        'email' => (string) ($_SESSION['user']['email'] ?? ''),
+        'admin' => !empty($_SESSION['user']['admin']),
+        'remote_addr' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+        'server_addr' => (string) ($_SERVER['SERVER_ADDR'] ?? ''),
+        'trusted_requester' => function_exists('is_trusted_requester') ? is_trusted_requester() : null,
+    ];
     $languageLinks = [];
     foreach (array_keys(SUPPORTED_LANGUAGES) as $languageCode) {
         if ($languageCode === $currentLanguage) {
@@ -1096,6 +1103,8 @@
             {
                 return;
             }
+
+            console.log('[Talos auth debug]', <?= json_encode($authDebug, JSON_UNESCAPED_UNICODE) ?>);
 
             if (manualPagerEl)
             {
