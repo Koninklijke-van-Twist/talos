@@ -50,6 +50,16 @@
             position: relative;
         }
 
+        .admin-open-btn {
+            border: 1px solid #c7ced9;
+            border-radius: 6px;
+            background: #1a2a44;
+            color: #fff;
+            padding: 0.45rem 0.65rem;
+            font-size: 0.84rem;
+            cursor: pointer;
+        }
+
         .language-switch button {
             width: 38px;
             height: 28px;
@@ -519,6 +529,109 @@
             color: #ff9a9a;
         }
 
+        .pm-admin-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(12, 24, 43, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1200;
+        }
+
+        .pm-admin-modal.open {
+            display: flex;
+        }
+
+        .pm-admin-modal-content {
+            width: min(1000px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #d0d7e2;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 0.9rem;
+        }
+
+        .pm-admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            gap: 0.75rem;
+        }
+
+        .pm-admin-close {
+            border: 1px solid #c7ced9;
+            border-radius: 6px;
+            padding: 0.35rem 0.55rem;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .pm-admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 1rem;
+        }
+
+        .pm-admin-column h3 {
+            font-size: 0.9rem;
+            color: #1a2a44;
+            margin-bottom: 0.5rem;
+        }
+
+        .pm-admin-manager-list,
+        .pm-admin-children-list {
+            border: 1px solid #d0d7e2;
+            border-radius: 8px;
+            padding: 0.5rem;
+            max-height: 55vh;
+            overflow: auto;
+            background: #f9fbfe;
+        }
+
+        .pm-admin-manager-item {
+            width: 100%;
+            text-align: left;
+            border: 1px solid #d7dee8;
+            border-radius: 6px;
+            background: #fff;
+            padding: 0.45rem 0.5rem;
+            margin-bottom: 0.35rem;
+            cursor: pointer;
+            color: #1a2a44;
+        }
+
+        .pm-admin-manager-item.active {
+            border-color: #1a2a44;
+            background: #e9eef8;
+            font-weight: 600;
+        }
+
+        .pm-admin-child-option {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.2rem 0;
+        }
+
+        .pm-admin-child-option.disabled {
+            opacity: 0.55;
+        }
+
+        .pm-admin-save {
+            margin-top: 0.7rem;
+            border: 1px solid #1a2a44;
+            border-radius: 6px;
+            background: #1a2a44;
+            color: #fff;
+            padding: 0.45rem 0.65rem;
+            cursor: pointer;
+        }
+
         @media (max-width: 600px) {
             header h1 {
                 font-size: 0.95rem;
@@ -527,6 +640,10 @@
             thead th,
             tbody td {
                 padding: 0.5rem 0.6rem;
+            }
+
+            .pm-admin-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -539,6 +656,17 @@
     $showCompanyColumn = $selectedCompany === '';
     $currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
     $canInspectRows = $currentUserEmail === '' || in_array($currentUserEmail, $ictUsers ?? [], true);
+    $projectManagerDefault = trim((string) ($projectManagerDefaultSelection ?? ''));
+    $allowedProjectManagerList = talosPmUniqueStrings((array) ($allowedProjectManagers ?? []));
+    $allProjectManagerList = talosPmUniqueStrings((array) ($allProjectManagers ?? []));
+    $projectManagerDisplayLookup = is_array($projectManagerDisplayMap ?? null) ? $projectManagerDisplayMap : [];
+    $projectManagerOwnLabel = trim((string) ($currentUserSetup['project_manager_name'] ?? ''));
+    if ($projectManagerOwnLabel === '' && $projectManagerDefault !== '') {
+        $projectManagerOwnLabel = (string) ($projectManagerDisplayLookup[$projectManagerDefault] ?? $projectManagerDefault);
+    }
+    $projectManagerAssignmentMap = is_array($projectManagerAssignments ?? null) ? $projectManagerAssignments : [];
+    $projectManagerInvalidMap = is_array($projectManagerInvalidMatrix ?? null) ? $projectManagerInvalidMatrix : [];
+    $adminFlashPayload = is_array($adminFlash ?? null) ? $adminFlash : null;
     $languageLinks = [];
     foreach (array_keys(SUPPORTED_LANGUAGES) as $languageCode) {
         if ($languageCode === $currentLanguage) {
@@ -557,6 +685,11 @@
     <header>
         <img src="logo-website.png" alt="KVT">
         <h1><?= h(LOC('page.overdue_invoices.heading')) ?></h1>
+        <?php if (!empty($isAdminUser)): ?>
+            <button type="button" class="admin-open-btn" id="pm-admin-open">
+                <?= h(LOC('pm_admin.button')) ?>
+            </button>
+        <?php endif; ?>
         <div class="language-switch" id="language-switch">
             <button type="button" id="language-switch-button" aria-label="Language">
                 <?= getLanguageFlagSvg($currentLanguage) ?>
@@ -572,6 +705,12 @@
     </header>
 
     <main>
+        <?php if ($adminFlashPayload !== null): ?>
+            <div class="alert <?= ($adminFlashPayload['type'] ?? '') === 'success' ? 'alert-info' : 'alert-danger' ?>">
+                <?= h((string) ($adminFlashPayload['message'] ?? '')) ?>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($availableCompanies)): ?>
             <form method="get" class="filters">
                 <label for="company-filter"><?= h(LOC('filter.company')) ?></label>
@@ -656,7 +795,10 @@
                 <div class="status-filter-list" id="status-filter-list"></div>
                 <div class="live-select-filters">
                     <label for="project-manager-filter"><?= h(LOC('filter.project_manager')) ?>:</label>
-                    <select id="project-manager-filter" data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"></select>
+                    <select
+                        id="project-manager-filter"
+                        data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"
+                        data-default="<?= h($projectManagerDefault) ?>"></select>
                     <label for="cost-center-code-filter"><?= h(LOC('filter.cost_center_code')) ?>:</label>
                     <select id="cost-center-code-filter" data-all-label="<?= h(LOC('filter.cost_center_code_all')) ?>"></select>
                     <label for="created-by-filter"><?= h(LOC('filter.created_by')) ?>:</label>
@@ -830,6 +972,34 @@
         </div>
     <?php endif; ?>
 
+    <?php if (!empty($isAdminUser)): ?>
+        <div class="pm-admin-modal" id="pm-admin-modal" aria-hidden="true">
+            <div class="pm-admin-modal-content" role="dialog" aria-modal="true" aria-label="<?= h(LOC('pm_admin.title')) ?>">
+                <div class="pm-admin-header">
+                    <strong><?= h(LOC('pm_admin.title')) ?></strong>
+                    <button type="button" class="pm-admin-close" id="pm-admin-close"><?= h(LOC('pm_admin.close')) ?></button>
+                </div>
+
+                <div class="pm-admin-grid">
+                    <div class="pm-admin-column">
+                        <h3><?= h(LOC('pm_admin.manager_list_label')) ?></h3>
+                        <div id="pm-admin-manager-list" class="pm-admin-manager-list"></div>
+                    </div>
+
+                    <div class="pm-admin-column">
+                        <h3><?= h(LOC('pm_admin.assigned_list_label')) ?></h3>
+                        <form method="post" id="pm-admin-form" class="pm-admin-form">
+                            <input type="hidden" name="action" value="pm_admin_save">
+                            <input type="hidden" name="selected_manager" id="pm-admin-selected-manager" value="">
+                            <div id="pm-admin-children-list" class="pm-admin-children-list"></div>
+                            <button type="submit" class="pm-admin-save"><?= h(LOC('pm_admin.save')) ?></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <script>
         (function ()
         {
@@ -858,6 +1028,12 @@
             const costCenterCodeFilterEl = document.getElementById('cost-center-code-filter');
             const createdByFilterEl = document.getElementById('created-by-filter');
             const searchInputEl = document.getElementById('table-search');
+            const pmAdminOpenEl = document.getElementById('pm-admin-open');
+            const pmAdminModalEl = document.getElementById('pm-admin-modal');
+            const pmAdminCloseEl = document.getElementById('pm-admin-close');
+            const pmAdminManagerListEl = document.getElementById('pm-admin-manager-list');
+            const pmAdminChildrenListEl = document.getElementById('pm-admin-children-list');
+            const pmAdminSelectedManagerEl = document.getElementById('pm-admin-selected-manager');
             const seenOverdueRowKeys = new Set();
             const seenUpcomingRowKeys = new Set();
             const DYNAMIC_COLS = ['accountmanager', 'customer', 'document_no', 'work_order', 'company'];
@@ -883,7 +1059,16 @@
                 projectManagerAllLabel: <?= json_encode(LOC('filter.project_manager_all'), JSON_UNESCAPED_UNICODE) ?>,
                 costCenterCodeAllLabel: <?= json_encode(LOC('filter.cost_center_code_all'), JSON_UNESCAPED_UNICODE) ?>,
                 createdByAllLabel: <?= json_encode(LOC('filter.created_by_all'), JSON_UNESCAPED_UNICODE) ?>,
-                canInspectRows: <?= $canInspectRows ? 'true' : 'false' ?>
+                canInspectRows: <?= $canInspectRows ? 'true' : 'false' ?>,
+                ownProjectManager: <?= json_encode($projectManagerDefault, JSON_UNESCAPED_UNICODE) ?>,
+                ownProjectManagerLabel: <?= json_encode($projectManagerOwnLabel, JSON_UNESCAPED_UNICODE) ?>,
+                allowedProjectManagers: <?= json_encode($allowedProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
+                allProjectManagers: <?= json_encode($allProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
+                pmDisplayMap: <?= json_encode($projectManagerDisplayLookup, JSON_UNESCAPED_UNICODE) ?>,
+                pmAssignments: <?= json_encode($projectManagerAssignmentMap, JSON_UNESCAPED_UNICODE) ?>,
+                pmInvalidMap: <?= json_encode($projectManagerInvalidMap, JSON_UNESCAPED_UNICODE) ?>,
+                pmAdminTitleNone: <?= json_encode(LOC('pm_admin.none_available'), JSON_UNESCAPED_UNICODE) ?>,
+                pmAdminSelectManager: <?= json_encode(LOC('pm_admin.select_manager_first'), JSON_UNESCAPED_UNICODE) ?>
             };
 
             const moneyFormatter = new Intl.NumberFormat(document.documentElement.lang || 'nl', {
@@ -1065,10 +1250,48 @@
 
             const activeStatusFilters = new Set();
             let activeSearchQuery = '';
-            let activeProjectManager = '';
+            let activeProjectManager = String(config.ownProjectManager || '');
             let activeCostCenterCode = '';
             let activeCreatedBy = '';
             let knownStatuses = [];
+
+            function normalizeText (value)
+            {
+                return String(value || '').trim().toLowerCase();
+            }
+
+            function getProjectManagerLabel (managerCode)
+            {
+                const code = String(managerCode || '');
+                if (code === '')
+                {
+                    return '';
+                }
+
+                const displayMap = config.pmDisplayMap || {};
+                if (Object.prototype.hasOwnProperty.call(displayMap, code))
+                {
+                    const direct = String(displayMap[code] || '');
+                    if (direct !== '')
+                    {
+                        return direct;
+                    }
+                }
+
+                const normalized = normalizeText(code);
+                const keys = Object.keys(displayMap);
+                for (let i = 0; i < keys.length; i++)
+                {
+                    const key = String(keys[i]);
+                    if (normalizeText(key) === normalized)
+                    {
+                        const value = String(displayMap[key] || '');
+                        return value !== '' ? value : code;
+                    }
+                }
+
+                return code;
+            }
 
             function escapeHtml (value)
             {
@@ -1477,8 +1700,172 @@
                 if (event.key === 'Escape')
                 {
                     closeInspectorModal();
+                    if (pmAdminModalEl && pmAdminModalEl.classList.contains('open'))
+                    {
+                        pmAdminModalEl.classList.remove('open');
+                        pmAdminModalEl.setAttribute('aria-hidden', 'true');
+                    }
                 }
             });
+
+            function getAssignedChildrenForManager (managerName)
+            {
+                const assignments = config.pmAssignments || {};
+                const managerKey = normalizeText(managerName);
+                const keys = Object.keys(assignments);
+                for (let i = 0; i < keys.length; i++)
+                {
+                    const key = String(keys[i]);
+                    if (normalizeText(key) === managerKey)
+                    {
+                        return Array.isArray(assignments[key]) ? assignments[key].map(String) : [];
+                    }
+                }
+
+                return [];
+            }
+
+            function getInvalidChildrenForManager (managerName)
+            {
+                const managerKey = normalizeText(managerName);
+                const map = config.pmInvalidMap || {};
+                const values = map[managerKey] || [];
+                return new Set(Array.isArray(values) ? values.map(normalizeText) : []);
+            }
+
+            function renderPmAdminChildrenList (managerName)
+            {
+                if (!pmAdminChildrenListEl || !pmAdminSelectedManagerEl)
+                {
+                    return;
+                }
+
+                const selectedManager = String(managerName || '');
+                pmAdminSelectedManagerEl.value = selectedManager;
+
+                if (selectedManager === '')
+                {
+                    pmAdminChildrenListEl.innerHTML = '<p>' + escapeHtml(config.pmAdminSelectManager) + '</p>';
+                    return;
+                }
+
+                const assignedSet = new Set(getAssignedChildrenForManager(selectedManager).map(normalizeText));
+                const invalidSet = getInvalidChildrenForManager(selectedManager);
+
+                const allManagers = Array.isArray(config.allProjectManagers) ? config.allProjectManagers : [];
+                const options = allManagers.filter(function (managerCode)
+                {
+                    return normalizeText(managerCode) !== normalizeText(selectedManager);
+                });
+
+                if (options.length === 0)
+                {
+                    pmAdminChildrenListEl.innerHTML = '<p>' + escapeHtml(config.pmAdminTitleNone) + '</p>';
+                    return;
+                }
+
+                let html = '';
+                options.forEach(function (managerCode)
+                {
+                    const normalized = normalizeText(managerCode);
+                    const checked = assignedSet.has(normalized);
+                    const disabled = invalidSet.has(normalized);
+                    const label = getProjectManagerLabel(managerCode);
+
+                    html += '<label class="pm-admin-child-option' + (disabled ? ' disabled' : '') + '">';
+                    html += '<input type="checkbox" name="assigned_project_managers[]" value="' + escapeHtml(managerCode) + '"'
+                        + (checked ? ' checked' : '')
+                        + (disabled ? ' disabled' : '')
+                        + '>';
+                    html += '<span>' + escapeHtml(label) + '</span>';
+                    html += '</label>';
+                });
+
+                pmAdminChildrenListEl.innerHTML = html;
+            }
+
+            function renderPmAdminManagerList ()
+            {
+                if (!pmAdminManagerListEl)
+                {
+                    return;
+                }
+
+                const managers = Array.isArray(config.allProjectManagers) ? config.allProjectManagers : [];
+                if (managers.length === 0)
+                {
+                    pmAdminManagerListEl.innerHTML = '<p>' + escapeHtml(config.pmAdminTitleNone) + '</p>';
+                    renderPmAdminChildrenList('');
+                    return;
+                }
+
+                let activeManager = managers[0];
+                if (pmAdminSelectedManagerEl && String(pmAdminSelectedManagerEl.value || '') !== '')
+                {
+                    activeManager = String(pmAdminSelectedManagerEl.value);
+                }
+
+                let html = '';
+                managers.forEach(function (managerCode)
+                {
+                    const isActive = normalizeText(managerCode) === normalizeText(activeManager);
+                    html += '<button type="button" class="pm-admin-manager-item' + (isActive ? ' active' : '') + '" data-manager="' + escapeHtml(managerCode) + '">' + escapeHtml(getProjectManagerLabel(managerCode)) + '</button>';
+                });
+
+                pmAdminManagerListEl.innerHTML = html;
+                renderPmAdminChildrenList(activeManager);
+            }
+
+            function bindPmAdminModal ()
+            {
+                if (!pmAdminOpenEl || !pmAdminModalEl || !pmAdminCloseEl || !pmAdminManagerListEl)
+                {
+                    return;
+                }
+
+                pmAdminOpenEl.addEventListener('click', function ()
+                {
+                    renderPmAdminManagerList();
+                    pmAdminModalEl.classList.add('open');
+                    pmAdminModalEl.setAttribute('aria-hidden', 'false');
+                });
+
+                pmAdminCloseEl.addEventListener('click', function ()
+                {
+                    pmAdminModalEl.classList.remove('open');
+                    pmAdminModalEl.setAttribute('aria-hidden', 'true');
+                });
+
+                pmAdminModalEl.addEventListener('click', function (event)
+                {
+                    if (event.target === pmAdminModalEl)
+                    {
+                        pmAdminModalEl.classList.remove('open');
+                        pmAdminModalEl.setAttribute('aria-hidden', 'true');
+                    }
+                });
+
+                pmAdminManagerListEl.addEventListener('click', function (event)
+                {
+                    const button = event.target.closest('.pm-admin-manager-item');
+                    if (!button || !pmAdminManagerListEl.contains(button))
+                    {
+                        return;
+                    }
+
+                    const manager = String(button.getAttribute('data-manager') || '');
+                    if (manager === '')
+                    {
+                        return;
+                    }
+
+                    pmAdminManagerListEl.querySelectorAll('.pm-admin-manager-item').forEach(function (item)
+                    {
+                        item.classList.toggle('active', item === button);
+                    });
+                    renderPmAdminChildrenList(manager);
+                });
+            }
 
             function rowMatchesSearch (row)
             {
@@ -1517,7 +1904,41 @@
                 });
             }
 
-            function renderLiveFilterSelectOptions (selectEl, allLabel, values)
+            function collectProjectManagerLabelMapFromRows ()
+            {
+                const map = {};
+
+                [overdueRowsEl, upcomingRowsEl].forEach(function (tbodyEl)
+                {
+                    if (!tbodyEl)
+                    {
+                        return;
+                    }
+
+                    const rows = tbodyEl.querySelectorAll('tr[data-row-key]');
+                    rows.forEach(function (row)
+                    {
+                        const managerCode = String(row.getAttribute('data-project-manager') || '').trim();
+                        if (managerCode === '')
+                        {
+                            return;
+                        }
+
+                        if (Object.prototype.hasOwnProperty.call(map, managerCode))
+                        {
+                            return;
+                        }
+
+                        const managerCell = row.querySelector('td[data-col="project_manager"]');
+                        const managerLabel = String(managerCell ? managerCell.textContent : '').trim();
+                        map[managerCode] = managerLabel !== '' ? managerLabel : getProjectManagerLabel(managerCode);
+                    });
+                });
+
+                return map;
+            }
+
+            function renderLiveFilterSelectOptions (selectEl, allLabel, values, forcedValue, labelResolver)
             {
                 if (!selectEl)
                 {
@@ -1528,9 +1949,18 @@
                 let html = '<option value="">' + escapeHtml(allLabel) + '</option>';
                 values.forEach(function (value)
                 {
-                    html += '<option value="' + escapeHtml(value) + '">' + escapeHtml(value) + '</option>';
+                    const optionValue = String(value || '');
+                    const optionLabel = typeof labelResolver === 'function' ? String(labelResolver(optionValue)) : optionValue;
+                    html += '<option value="' + escapeHtml(optionValue) + '">' + escapeHtml(optionLabel) + '</option>';
                 });
                 selectEl.innerHTML = html;
+
+                const force = String(forcedValue || '');
+                if (force !== '' && values.indexOf(force) !== -1)
+                {
+                    selectEl.value = force;
+                    return;
+                }
 
                 const canRestore = previousValue !== '' && values.indexOf(previousValue) !== -1;
                 selectEl.value = canRestore ? previousValue : '';
@@ -1538,11 +1968,54 @@
 
             function syncLiveFiltersFromRows ()
             {
-                const projectManagers = collectUniqueRowAttributeValues('data-project-manager');
+                const projectManagersFromRows = collectUniqueRowAttributeValues('data-project-manager');
+                const allowedSet = new Set((Array.isArray(config.allowedProjectManagers) ? config.allowedProjectManagers : []).map(normalizeText));
+                const ownManagerNormalized = normalizeText(config.ownProjectManager);
+                const ownManagerCode = String(config.ownProjectManager || '').trim();
+                const rowLabelMap = collectProjectManagerLabelMapFromRows();
+
+                const projectManagers = projectManagersFromRows.filter(function (value)
+                {
+                    return allowedSet.size === 0 || allowedSet.has(normalizeText(value));
+                });
+
+                if (ownManagerCode !== '' && projectManagers.indexOf(ownManagerCode) === -1)
+                {
+                    projectManagers.push(ownManagerCode);
+                }
+
+                projectManagers.sort(function (left, right)
+                {
+                    return left.localeCompare(right);
+                });
+
                 const costCenterCodes = collectUniqueRowAttributeValues('data-cost-center-code');
                 const createdByValues = collectUniqueRowAttributeValues('data-created-by');
 
-                renderLiveFilterSelectOptions(projectManagerFilterEl, config.projectManagerAllLabel, projectManagers);
+                const shouldForceOwnManager = ownManagerNormalized !== ''
+                    && (activeProjectManager === '' || normalizeText(activeProjectManager) === ownManagerNormalized);
+
+                renderLiveFilterSelectOptions(
+                    projectManagerFilterEl,
+                    config.projectManagerAllLabel,
+                    projectManagers,
+                    shouldForceOwnManager ? String(config.ownProjectManager || '') : '',
+                    function (managerCode)
+                    {
+                        const ownLabel = String(config.ownProjectManagerLabel || '').trim();
+                        if (ownLabel !== '' && normalizeText(managerCode) === normalizeText(config.ownProjectManager))
+                        {
+                            return ownLabel;
+                        }
+
+                        if (Object.prototype.hasOwnProperty.call(rowLabelMap, managerCode))
+                        {
+                            return String(rowLabelMap[managerCode] || managerCode);
+                        }
+
+                        return getProjectManagerLabel(managerCode);
+                    }
+                );
                 renderLiveFilterSelectOptions(costCenterCodeFilterEl, config.costCenterCodeAllLabel, costCenterCodes);
                 renderLiveFilterSelectOptions(createdByFilterEl, config.createdByAllLabel, createdByValues);
 
@@ -1581,7 +2054,7 @@
                         const projectManager = String(row.getAttribute('data-project-manager') || '');
                         const costCenterCode = String(row.getAttribute('data-cost-center-code') || '');
                         const createdBy = String(row.getAttribute('data-created-by') || '');
-                        const passesProjectManager = activeProjectManager === '' || projectManager === activeProjectManager;
+                        const passesProjectManager = activeProjectManager === '' || normalizeText(projectManager) === normalizeText(activeProjectManager);
                         const passesCostCenterCode = activeCostCenterCode === '' || costCenterCode === activeCostCenterCode;
                         const passesCreatedBy = activeCreatedBy === '' || createdBy === activeCreatedBy;
                         row.style.display = (passesStatus && passesSearch && passesProjectManager && passesCostCenterCode && passesCreatedBy) ? '' : 'none';
@@ -1679,6 +2152,7 @@
             }
 
             bindStatusFilterButtons();
+            bindPmAdminModal();
             bindRowInspector(overdueRowsEl);
             bindRowInspector(upcomingRowsEl);
 

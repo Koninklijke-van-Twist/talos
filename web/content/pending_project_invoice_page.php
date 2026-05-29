@@ -9,6 +9,66 @@ $showOdataErrorDetails = isset($_GET['debug_odata']) && (string) $_GET['debug_od
 $debugFetchAllRules = isset($_GET['debug_all_rules']) && (string) $_GET['debug_all_rules'] === '1';
 $hideSapImports = !isset($_GET['hide_sap_imports']) || (string) $_GET['hide_sap_imports'] !== '0';
 $userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
+$currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
+$isAdminUser = !empty($_SESSION['user']['admin'])
+    || strcasecmp($currentUserEmail, 'localtester@kvt.nl') === 0;
+
+if (!isset($_SESSION['pm_admin_flash_by_user']) || !is_array($_SESSION['pm_admin_flash_by_user'])) {
+    $_SESSION['pm_admin_flash_by_user'] = [];
+}
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['action'])
+    && (string) $_POST['action'] === 'pm_admin_save'
+    && $isAdminUser
+) {
+    $selectedManager = trim((string) ($_POST['selected_manager'] ?? ''));
+    $selectedChildren = $_POST['assigned_project_managers'] ?? [];
+    if (!is_array($selectedChildren)) {
+        $selectedChildren = [];
+    }
+
+    $assignments = talosPmLoadHierarchyAssignments();
+    $assignResult = talosPmAssignChildren($assignments, $selectedManager, $selectedChildren);
+
+    $flashPayload = [];
+    if (!empty($assignResult['ok'])) {
+        $saveOk = talosPmSaveHierarchyAssignments(
+            (array) ($assignResult['assignments'] ?? []),
+            $currentUserEmail
+        );
+
+        if ($saveOk) {
+            $flashPayload = [
+                'type' => 'success',
+                'message' => LOC('pm_admin.flash.saved'),
+            ];
+        } else {
+            $flashPayload = [
+                'type' => 'error',
+                'message' => LOC('pm_admin.error.save_failed'),
+            ];
+        }
+    } else {
+        $errorKey = (string) ($assignResult['error_key'] ?? 'pm_admin.error.save_failed');
+        $errorArgs = (array) ($assignResult['error_args'] ?? []);
+        $flashPayload = [
+            'type' => 'error',
+            'message' => LOC($errorKey, ...$errorArgs),
+        ];
+    }
+
+    $_SESSION['pm_admin_flash_by_user'][$userKey] = $flashPayload;
+
+    $redirectUrl = (string) ($_SERVER['REQUEST_URI'] ?? 'index.php');
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+$adminFlash = $_SESSION['pm_admin_flash_by_user'][$userKey] ?? null;
+unset($_SESSION['pm_admin_flash_by_user'][$userKey]);
+
 if (!isset($_SESSION['selected_company_by_user']) || !is_array($_SESSION['selected_company_by_user'])) {
     $_SESSION['selected_company_by_user'] = [];
 }
@@ -27,6 +87,22 @@ if ($isAllCompaniesSelection) {
 }
 
 $odataErrorPublic = null;
+$currentUserSetup = [
+    'found' => false,
+    'email' => $currentUserEmail,
+    'user_id' => '',
+    'project_manager' => '',
+    'project_manager_name' => '',
+    'environment' => '',
+    'row' => null,
+];
+$allowedProjectManagers = [];
+$allProjectManagers = [];
+$projectManagerAssignments = [];
+$projectManagerInvalidMatrix = [];
+$projectManagerDefaultSelection = '';
+$projectManagerDisplayMap = [];
+$salespersonRowsForDisplay = [];
 
 /**
  * Page load
@@ -58,6 +134,78 @@ try {
             setCompanyEnvironmentMap($companyEnvironmentMap);
         }
     }
+
+    $projectManagerAssignments = talosPmLoadHierarchyAssignments();
+
+    if ($isAdminUser) {
+        $adminUserSetupRows = [];
+        try {
+            // Voor admin-beheer altijd alle bedrijven meenemen, los van huidige company-filter.
+            $adminUserSetupRows = talosPmFetchUserSetupRows($baseUrl, (array) $companyEnvironmentMap, $auth, '');
+        } catch (Exception $ignored) {
+            $adminUserSetupRows = [];
+        }
+        $salespersonRowsForDisplay = $adminUserSetupRows;
+
+        $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $adminUserSetupRows);
+
+        $extraManagers = talosPmCollectManagerCandidates(
+            $adminUserSetupRows,
+            talosPmCollectProjectManagersFromBuckets($buckets)
+        );
+        foreach ($projectManagerAssignments as $managerName => $children) {
+            $extraManagers[] = (string) $managerName;
+            foreach ((array) $children as $childName) {
+                $extraManagers[] = (string) $childName;
+            }
+        }
+
+        $allProjectManagers = talosPmUniqueStrings($extraManagers);
+        $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($adminUserSetupRows, $allProjectManagers);
+        $allowedProjectManagers = $allProjectManagers;
+        $projectManagerDefaultSelection = '';
+    } else {
+        $userSetupRows = talosPmFetchUserSetupRows($baseUrl, (array) $companyEnvironmentMap, $auth, '');
+        $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($userSetupRows, $currentUserEmail);
+
+        if (empty($currentUserSetup['found'])) {
+            throw new Exception(LOC('error.user_not_in_usersetup'), 40311);
+        }
+
+        $projectManagerDefaultSelection = trim((string) ($currentUserSetup['project_manager'] ?? ''));
+        if ($projectManagerDefaultSelection === '') {
+            throw new Exception(LOC('error.user_missing_project_manager'), 40312);
+        }
+
+        $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $userSetupRows);
+        $salespersonRowsForDisplay = $userSetupRows;
+
+        $allProjectManagers = talosPmCollectManagerCandidates(
+            $userSetupRows,
+            talosPmCollectProjectManagersFromBuckets($buckets)
+        );
+        $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($userSetupRows, $allProjectManagers);
+
+        $allowedProjectManagers = talosPmGetAllowedProjectManagers(
+            $projectManagerAssignments,
+            $projectManagerDefaultSelection,
+            $allProjectManagers
+        );
+
+        if (empty($allowedProjectManagers)) {
+            $allowedProjectManagers = [$projectManagerDefaultSelection];
+        }
+
+        $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
+    }
+
+    if (empty($projectManagerDisplayMap)) {
+        $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap([], $allProjectManagers);
+    }
+
+    $buckets = talosPmApplyDisplayNamesToBuckets($buckets, $projectManagerDisplayMap);
+    $buckets = talosPmApplyCreatedByDisplayNamesToBuckets($buckets, $salespersonRowsForDisplay);
+    $projectManagerInvalidMatrix = talosPmBuildInvalidChildrenMatrix($allProjectManagers, $projectManagerAssignments);
 
     if ($selectedCompany !== '') {
         $_SESSION['selected_company_by_user'][$userKey] = $selectedCompany;
@@ -136,5 +284,6 @@ try {
     $upcomingWindowLabel = '';
     $upcomingSectionTitle = '';
     $odataError = $e->getMessage();
-    $odataErrorPublic = ((int) $e->getCode() === 40901) ? $e->getMessage() : null;
+    $publicErrorCodes = [40901, 40311, 40312];
+    $odataErrorPublic = in_array((int) $e->getCode(), $publicErrorCodes, true) ? $e->getMessage() : null;
 }

@@ -193,8 +193,12 @@ function renderInvoiceTableRow(
 
     $status = (string) (($line['KVT_Status_Work_Order'] ?? '') !== '' ? ($line['KVT_Status_Work_Order'] ?? '') : ($line['Status'] ?? 'Open'));
     $statusBadge = renderStatusBadge($status);
-    $accountManager = extractAccountManagerFromUserId((string) ($line['User_ID'] ?? ''));
+    $accountManager = trim((string) ($line['_created_by_display'] ?? ''));
+    if ($accountManager === '') {
+        $accountManager = extractAccountManagerFromUserId((string) ($line['User_ID'] ?? ''));
+    }
     $projectManager = (string) ($line['_project_manager'] ?? '');
+    $projectManagerDisplay = (string) (($line['_project_manager_display'] ?? '') !== '' ? ($line['_project_manager_display'] ?? '') : $projectManager);
     $jobcardStatus = (string) ($line['_jobcard_status'] ?? '');
 
     $rowAttributes .= ' data-created-by="' . h($accountManager) . '"';
@@ -205,7 +209,7 @@ function renderInvoiceTableRow(
         . '<td data-col="job">' . h($jobNo) . '</td>'
         . '<td data-col="status">' . $statusBadge . '</td>'
         . '<td data-col="accountmanager">' . h($accountManager) . '</td>'
-           . '<td data-col="project_manager">' . h($projectManager) . '</td>'
+              . '<td data-col="project_manager">' . h($projectManagerDisplay) . '</td>'
         . '<td data-col="cost_center_code">' . h((string) ($line["_cost_center_code"] ?? '')) . '</td>'
         . '<td data-col="description">' . h((string) ($line['Description'] ?? '')) . '</td>'
         . '<td data-col="planning_date">' . h(formatDate($planningDateRaw)) . '</td>'

@@ -116,9 +116,9 @@ function fetchProjectDetailsByJobNumbers(
     );
     $filterClause = '(' . implode(' or ', $filterParts) . ')';
 
-    $queryUrl = $companyBaseUrl . 'AppProjecten'
+    $queryUrl = $companyBaseUrl . 'Projecten'
         . '?$filter=' . rawurlencode($filterClause)
-        . '&$select=No,Project_Manager,LVS_Global_Dimension_1_Code,Status';
+        . '&$select=No,KVT_Sales_Person_Code,Project_Manager,LVS_Global_Dimension_1_Code,Status';
 
     $projects = odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
 
@@ -139,7 +139,12 @@ function enrichRowsWithProjectData(array $rows, array $projectsByNo): array
         $jobNo = (string) ($row['Job_No'] ?? '');
         if ($jobNo !== '' && isset($projectsByNo[$jobNo])) {
             $project = $projectsByNo[$jobNo];
-            $row['_project_manager'] = (string) ($project['Project_Manager'] ?? '');
+            $salespersonCode = trim((string) ($project['KVT_Sales_Person_Code'] ?? ''));
+            if ($salespersonCode === '') {
+                $salespersonCode = trim((string) ($project['Project_Manager'] ?? ''));
+            }
+
+            $row['_project_manager'] = $salespersonCode;
             $row['_cost_center_code'] = (string) ($project['LVS_Global_Dimension_1_Code'] ?? '');
             $row['_jobcard_status'] = (string) ($project['Status'] ?? '');
             continue;

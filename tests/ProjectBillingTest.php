@@ -48,9 +48,10 @@ class ProjectBillingTest extends TestCase
                 ]];
             }
 
-            if (str_contains($url, 'AppProjecten')) {
+            if (str_contains($url, 'Projecten')) {
                 return [[
                     'No' => 'JOB-001',
+                    'KVT_Sales_Person_Code' => 'SP-01',
                     'Project_Manager' => 'PM-01',
                     'LVS_Global_Dimension_1_Code' => 'CC-42',
                 ]];
@@ -82,13 +83,13 @@ class ProjectBillingTest extends TestCase
         );
 
         $this->assertCount(1, $rows);
-        $this->assertSame('PM-01', (string) $rows[0]['_project_manager']);
+        $this->assertSame('SP-01', (string) $rows[0]['_project_manager']);
         $this->assertSame('CC-42', (string) $rows[0]['_cost_center_code']);
 
         $urls = (array) ($GLOBALS['__projectBillingTestUrls'] ?? []);
         $projectQueryUrl = '';
         foreach ($urls as $url) {
-            if (str_contains($url, 'AppProjecten')) {
+            if (str_contains($url, 'Projecten')) {
                 $projectQueryUrl = (string) $url;
                 break;
             }
@@ -96,6 +97,7 @@ class ProjectBillingTest extends TestCase
 
         $this->assertNotSame('', $projectQueryUrl);
         $this->assertStringContainsString('LVS_Global_Dimension_1_Code', rawurldecode($projectQueryUrl));
+        $this->assertStringContainsString('KVT_Sales_Person_Code', rawurldecode($projectQueryUrl));
     }
 
     public function testFetchRowsAddsNoFilterForSpecificRuleTypes(): void

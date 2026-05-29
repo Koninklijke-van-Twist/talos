@@ -183,7 +183,7 @@ class HelpersTest extends TestCase
 
     public function testExtractAccountManagerFromUserIdReturnsSuffixAfterSlash(): void
     {
-        $this->assertSame('CVRIJ', extractAccountManagerFromUserId('KVT/CVRIJ'));
+        $this->assertSame('CVRIJ', extractAccountManagerFromUserId('KVT\CVRIJ'));
     }
 
     // --- renderInvoiceTableRow() ---

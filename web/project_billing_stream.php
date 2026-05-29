@@ -8,6 +8,7 @@ require_once __DIR__ . '/content/bootstrap.php';
 require_once __DIR__ . '/content/localization.php';
 require_once __DIR__ . '/content/helpers.php';
 require_once __DIR__ . '/content/project_billing.php';
+require_once __DIR__ . '/content/project_manager_scope.php';
 require_once __DIR__ . '/odata.php';
 
 /**
@@ -51,6 +52,8 @@ $requestedCompany = trim((string) ($_GET['company'] ?? ''));
 $selectedCompany = $requestedCompany === '__all__' ? '' : $requestedCompany;
 $includeCompanyColumn = $selectedCompany === '';
 $currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
+$isAdminUser = !empty($_SESSION['user']['admin'])
+    || strcasecmp($currentUserEmail, 'localtester@kvt.nl') === 0;
 $canInspectRows = $currentUserEmail === '' || in_array($currentUserEmail, $ictUsers ?? [], true);
 
 /**
@@ -69,6 +72,51 @@ try {
         $debugFetchAllRules,
         $hideSapImports
     );
+
+    $companyEnvironmentMap = (array) ($buckets['company_environment_map'] ?? []);
+    $salespersonRows = [];
+    try {
+        $salespersonRows = talosPmFetchUserSetupRows($baseUrl, $companyEnvironmentMap, $auth, '');
+    } catch (Exception $e) {
+        if (!$isAdminUser) {
+            throw $e;
+        }
+        $salespersonRows = [];
+    }
+
+    $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $salespersonRows);
+
+    if (!$isAdminUser) {
+        $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($salespersonRows, $currentUserEmail);
+        if (empty($currentUserSetup['found'])) {
+            throw new Exception(LOC('error.user_not_in_usersetup'), 40311);
+        }
+
+        $userProjectManager = trim((string) ($currentUserSetup['project_manager'] ?? ''));
+        if ($userProjectManager === '') {
+            throw new Exception(LOC('error.user_missing_project_manager'), 40312);
+        }
+
+        $allProjectManagers = talosPmCollectManagerCandidates(
+            $salespersonRows,
+            talosPmCollectProjectManagersFromBuckets($buckets)
+        );
+
+        $assignments = talosPmLoadHierarchyAssignments();
+        $allowedProjectManagers = talosPmGetAllowedProjectManagers($assignments, $userProjectManager, $allProjectManagers);
+        if (empty($allowedProjectManagers)) {
+            $allowedProjectManagers = [$userProjectManager];
+        }
+
+        $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
+    }
+
+    $displayMap = talosPmBuildProjectManagerDisplayMap(
+        $salespersonRows,
+        talosPmCollectProjectManagersFromBuckets($buckets)
+    );
+    $buckets = talosPmApplyDisplayNamesToBuckets($buckets, $displayMap);
+    $buckets = talosPmApplyCreatedByDisplayNamesToBuckets($buckets, $salespersonRows);
 
     $upcoming = selectUpcomingBucket($buckets);
     $pendingRows = array_values($buckets['overdue'] ?? []);
@@ -103,6 +151,10 @@ try {
         'ok' => false,
         'error' => LOC('error.odata_failed'),
     ];
+
+    if (in_array((int) $e->getCode(), [40311, 40312], true)) {
+        $payload['error'] = $e->getMessage();
+    }
 
     if ($showOdataErrorDetails) {
         $payload['details'] = $e->getMessage();
