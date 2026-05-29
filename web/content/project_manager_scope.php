@@ -474,7 +474,25 @@ function talosPmRemapLegacyManagerCodesInBuckets(array $buckets, array $salesper
                 continue;
             }
 
-            $row['_project_manager'] = talosPmMapLegacyManagerCodeToSalespersonCode($currentManager, $salespersonRows);
+            $resolvedManager = talosPmMapLegacyManagerCodeToSalespersonCode($currentManager, $salespersonRows);
+
+            $salespersonCode = trim((string) ($row['_project_manager_salesperson_code'] ?? ''));
+            $projectManagerRaw = trim((string) ($row['_project_manager_project_manager_raw'] ?? ''));
+            if (
+                $salespersonCode !== ''
+                && $projectManagerRaw !== ''
+                && talosPmNormalizeName($salespersonCode) !== talosPmNormalizeName($projectManagerRaw)
+            ) {
+                $mappedProjectManager = talosPmMapLegacyManagerCodeToSalespersonCode($projectManagerRaw, $salespersonRows);
+                if (
+                    $mappedProjectManager !== ''
+                    && talosPmNormalizeName($mappedProjectManager) !== talosPmNormalizeName($projectManagerRaw)
+                ) {
+                    $resolvedManager = $mappedProjectManager;
+                }
+            }
+
+            $row['_project_manager'] = $resolvedManager;
         }
         unset($row);
     }

@@ -190,4 +190,35 @@ class ProjectManagerScopeTest extends TestCase
         $this->assertSame('A. de Groot', (string) $enriched['overdue'][0]['_created_by_display']);
         $this->assertSame('A. de Groot', (string) $enriched['all'][0]['_created_by_display']);
     }
+
+    public function testRemapLegacyManagerPrefersMappedProjectManagerWhenSourcesConflict(): void
+    {
+        $salespersonRows = [
+            [
+                'Code' => 'AV',
+                'E_Mail' => 'avveldhoven@kvt.nl',
+            ],
+            [
+                'Code' => 'AVE',
+                'E_Mail' => 'averhagen@kvt.nl',
+            ],
+        ];
+
+        $buckets = [
+            'overdue' => [
+                [
+                    '_project_manager' => 'AVE',
+                    '_project_manager_salesperson_code' => 'AVE',
+                    '_project_manager_project_manager_raw' => 'KVT\\avveldhoven',
+                ],
+            ],
+            'upcoming_month' => [],
+            'upcoming_year' => [],
+            'all' => [],
+        ];
+
+        $remapped = talosPmRemapLegacyManagerCodesInBuckets($buckets, $salespersonRows);
+
+        $this->assertSame('AV', (string) $remapped['overdue'][0]['_project_manager']);
+    }
 }

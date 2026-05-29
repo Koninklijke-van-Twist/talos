@@ -140,17 +140,23 @@ function enrichRowsWithProjectData(array $rows, array $projectsByNo): array
         if ($jobNo !== '' && isset($projectsByNo[$jobNo])) {
             $project = $projectsByNo[$jobNo];
             $salespersonCode = trim((string) ($project['KVT_Sales_Person_Code'] ?? ''));
-            if ($salespersonCode === '') {
-                $salespersonCode = trim((string) ($project['Project_Manager'] ?? ''));
+            $projectManagerRaw = trim((string) ($project['Project_Manager'] ?? ''));
+            $resolvedProjectManager = $salespersonCode;
+            if ($resolvedProjectManager === '') {
+                $resolvedProjectManager = $projectManagerRaw;
             }
 
-            $row['_project_manager'] = $salespersonCode;
+            $row['_project_manager'] = $resolvedProjectManager;
+            $row['_project_manager_salesperson_code'] = $salespersonCode;
+            $row['_project_manager_project_manager_raw'] = $projectManagerRaw;
             $row['_cost_center_code'] = (string) ($project['LVS_Global_Dimension_1_Code'] ?? '');
             $row['_jobcard_status'] = (string) ($project['Status'] ?? '');
             continue;
         }
 
         $row['_project_manager'] = '';
+        $row['_project_manager_salesperson_code'] = '';
+        $row['_project_manager_project_manager_raw'] = '';
         $row['_cost_center_code'] = '';
         $row['_jobcard_status'] = '';
     }
