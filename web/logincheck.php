@@ -19,6 +19,11 @@ function is_trusted_requester(): bool
 if (!is_trusted_requester()) {
     require __DIR__ . "/../login/lib.php";
 
+    // login/lib.php can close the session; reopen it before writing admin state.
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+
     $_SESSION['user']['admin'] = false;
 
     if (
@@ -31,6 +36,7 @@ if (!is_trusted_requester()) {
     }
 
     if (
+        isset($allowedUsers) &&
         !array_any($allowedUsers, function ($email) {
             return strtolower((string) $email) === strtolower((string) ($_SESSION['user']['email'] ?? ''));
         })
@@ -44,5 +50,6 @@ if (!is_trusted_requester()) {
         'email' => 'localtester@kvt.nl',
         'name' => (string) ('Local Tester'),
         'oid' => (string) ('12345'),
+        'admin' => true,
     ];
 }

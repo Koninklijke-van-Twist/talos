@@ -673,6 +673,15 @@
         'remote_addr' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
         'server_addr' => (string) ($_SERVER['SERVER_ADDR'] ?? ''),
         'trusted_requester' => function_exists('is_trusted_requester') ? is_trusted_requester() : null,
+        'email_normalized' => strtolower(trim((string) ($_SESSION['user']['email'] ?? ''))),
+        'ict_users_normalized' => array_values(array_map(
+            static fn($email): string => strtolower(trim((string) $email)),
+            is_array($ictUsers ?? null) ? $ictUsers : []
+        )),
+        'ict_match' => array_any(
+            is_array($ictUsers ?? null) ? $ictUsers : [],
+            static fn($email): bool => strtolower(trim((string) $email)) === strtolower(trim((string) ($_SESSION['user']['email'] ?? '')))
+        ),
     ];
     $languageLinks = [];
     foreach (array_keys(SUPPORTED_LANGUAGES) as $languageCode) {
@@ -802,12 +811,11 @@
                 <div class="status-filter-list" id="status-filter-list"></div>
                 <div class="live-select-filters">
                     <label for="project-manager-filter"><?= h(LOC('filter.project_manager')) ?>:</label>
-                    <select
-                        id="project-manager-filter"
-                        data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"
+                    <select id="project-manager-filter" data-all-label="<?= h(LOC('filter.project_manager_all')) ?>"
                         data-default="<?= h($projectManagerDefault) ?>"></select>
                     <label for="cost-center-code-filter"><?= h(LOC('filter.cost_center_code')) ?>:</label>
-                    <select id="cost-center-code-filter" data-all-label="<?= h(LOC('filter.cost_center_code_all')) ?>"></select>
+                    <select id="cost-center-code-filter"
+                        data-all-label="<?= h(LOC('filter.cost_center_code_all')) ?>"></select>
                     <label for="created-by-filter"><?= h(LOC('filter.created_by')) ?>:</label>
                     <select id="created-by-filter" data-all-label="<?= h(LOC('filter.created_by_all')) ?>"></select>
                 </div>
@@ -981,10 +989,12 @@
 
     <?php if (!empty($isAdminUser)): ?>
         <div class="pm-admin-modal" id="pm-admin-modal" aria-hidden="true">
-            <div class="pm-admin-modal-content" role="dialog" aria-modal="true" aria-label="<?= h(LOC('pm_admin.title')) ?>">
+            <div class="pm-admin-modal-content" role="dialog" aria-modal="true"
+                aria-label="<?= h(LOC('pm_admin.title')) ?>">
                 <div class="pm-admin-header">
                     <strong><?= h(LOC('pm_admin.title')) ?></strong>
-                    <button type="button" class="pm-admin-close" id="pm-admin-close"><?= h(LOC('pm_admin.close')) ?></button>
+                    <button type="button" class="pm-admin-close"
+                        id="pm-admin-close"><?= h(LOC('pm_admin.close')) ?></button>
                 </div>
 
                 <div class="pm-admin-grid">

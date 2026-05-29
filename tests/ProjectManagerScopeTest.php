@@ -15,6 +15,31 @@ require_once __DIR__ . '/../web/content/project_manager_scope.php';
 
 class ProjectManagerScopeTest extends TestCase
 {
+    public function testSelectSingleCompanyEnvironmentMapUsesRequestedCompanyWhenPresent(): void
+    {
+        $map = [
+            'Koninklijke van Twist' => 'kvtmdlive_aad',
+            'Hunter van Twist' => 'kvtmdlive_aad',
+        ];
+
+        $selected = talosPmSelectSingleCompanyEnvironmentMap($map, 'Hunter van Twist');
+
+        $this->assertSame(['Hunter van Twist' => 'kvtmdlive_aad'], $selected);
+    }
+
+    public function testSelectSingleCompanyEnvironmentMapFallsBackToOneCompany(): void
+    {
+        $map = [
+            'Koninklijke van Twist' => 'kvtmdlive_aad',
+            'Hunter van Twist' => 'kvtmdlive_aad',
+        ];
+
+        $selected = talosPmSelectSingleCompanyEnvironmentMap($map, '');
+
+        $this->assertCount(1, $selected);
+        $this->assertSame(['Hunter van Twist' => 'kvtmdlive_aad'], $selected);
+    }
+
     public function testResolveCurrentUserFromUserSetupUsesSalespersonCardFields(): void
     {
         $rows = [

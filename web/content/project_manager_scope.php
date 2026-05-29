@@ -146,8 +146,7 @@ function talosPmFetchUserSetupRows(
     array $companyEnvironmentMap,
     array $fallbackAuth,
     string $selectedCompany = ''
-): array
-{
+): array {
     static $cache = [];
 
     $normalizedMap = [];
@@ -242,6 +241,37 @@ function talosPmFetchUserSetupRows(
 
     $cache[$cacheKey] = $rows;
     return $rows;
+}
+
+function talosPmSelectSingleCompanyEnvironmentMap(array $companyEnvironmentMap, string $selectedCompany = ''): array
+{
+    $normalizedMap = [];
+    foreach ($companyEnvironmentMap as $companyName => $environmentName) {
+        $company = trim((string) $companyName);
+        $environment = trim((string) $environmentName);
+        if ($company === '' || $environment === '') {
+            continue;
+        }
+
+        $normalizedMap[$company] = $environment;
+    }
+
+    if (empty($normalizedMap)) {
+        return [];
+    }
+
+    $requestedCompany = trim($selectedCompany);
+    if ($requestedCompany !== '' && isset($normalizedMap[$requestedCompany])) {
+        return [$requestedCompany => $normalizedMap[$requestedCompany]];
+    }
+
+    ksort($normalizedMap, SORT_NATURAL | SORT_FLAG_CASE);
+    $company = (string) array_key_first($normalizedMap);
+    if ($company === '') {
+        return [];
+    }
+
+    return [$company => (string) $normalizedMap[$company]];
 }
 
 function talosPmResolveCurrentUserFromUserSetup(array $userSetupRows, string $email): array

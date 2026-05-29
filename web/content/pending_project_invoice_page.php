@@ -137,11 +137,12 @@ try {
 
     $projectManagerAssignments = talosPmLoadHierarchyAssignments();
 
+    $singleCompanyScopeMap = talosPmSelectSingleCompanyEnvironmentMap((array) $companyEnvironmentMap, $selectedCompany);
+
     if ($isAdminUser) {
         $adminUserSetupRows = [];
         try {
-            // Voor admin-beheer altijd alle bedrijven meenemen, los van huidige company-filter.
-            $adminUserSetupRows = talosPmFetchUserSetupRows($baseUrl, (array) $companyEnvironmentMap, $auth, '');
+            $adminUserSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
         } catch (Exception $ignored) {
             $adminUserSetupRows = [];
         }
@@ -165,7 +166,7 @@ try {
         $allowedProjectManagers = $allProjectManagers;
         $projectManagerDefaultSelection = '';
     } else {
-        $userSetupRows = talosPmFetchUserSetupRows($baseUrl, (array) $companyEnvironmentMap, $auth, '');
+        $userSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
         $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($userSetupRows, $currentUserEmail);
 
         if (empty($currentUserSetup['found'])) {

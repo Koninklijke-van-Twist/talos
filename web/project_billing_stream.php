@@ -74,9 +74,10 @@ try {
     );
 
     $companyEnvironmentMap = (array) ($buckets['company_environment_map'] ?? []);
+    $singleCompanyScopeMap = talosPmSelectSingleCompanyEnvironmentMap($companyEnvironmentMap, $selectedCompany);
     $salespersonRows = [];
     try {
-        $salespersonRows = talosPmFetchUserSetupRows($baseUrl, $companyEnvironmentMap, $auth, '');
+        $salespersonRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
     } catch (Exception $e) {
         if (!$isAdminUser) {
             throw $e;

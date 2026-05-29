@@ -35,26 +35,30 @@ class ProjectBillingTest extends TestCase
             $GLOBALS['__projectBillingTestUrls'][] = $url;
 
             if (str_contains($url, 'FactureerbareProjectPlanningsRegels')) {
-                return [[
-                    'Job_No' => 'JOB-001',
-                    'Line_No' => 10,
-                    'Planning_Date' => '2026-01-15',
-                    'Description' => 'Test line',
-                    'Document_No' => 'DOC-1',
-                    'Qty_to_Invoice' => 1,
-                    'Line_Amount' => 100,
-                    'User_ID' => 'user@example.com',
-                    'KVT_Status_Work_Order' => 'Open',
-                ]];
+                return [
+                    [
+                        'Job_No' => 'JOB-001',
+                        'Line_No' => 10,
+                        'Planning_Date' => '2026-01-15',
+                        'Description' => 'Test line',
+                        'Document_No' => 'DOC-1',
+                        'Qty_to_Invoice' => 1,
+                        'Line_Amount' => 100,
+                        'User_ID' => 'user@example.com',
+                        'KVT_Status_Work_Order' => 'Open',
+                    ]
+                ];
             }
 
             if (str_contains($url, 'Projecten')) {
-                return [[
-                    'No' => 'JOB-001',
-                    'KVT_Sales_Person_Code' => 'SP-01',
-                    'Project_Manager' => 'PM-01',
-                    'LVS_Global_Dimension_1_Code' => 'CC-42',
-                ]];
+                return [
+                    [
+                        'No' => 'JOB-001',
+                        'KVT_Sales_Person_Code' => 'SP-01',
+                        'Project_Manager' => 'PM-01',
+                        'LVS_Global_Dimension_1_Code' => 'CC-42',
+                    ]
+                ];
             }
 
             return [];

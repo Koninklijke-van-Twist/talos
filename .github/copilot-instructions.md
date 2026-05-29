@@ -6,8 +6,8 @@
 - De app is mobile-first. Nieuwe UI-wijzigingen moeten eerst op telefoonscherm goed leesbaar zijn.
 
 ## Niet wijzigen
-- Bestand `web/logincheck.php` niet aanpassen.
-- Bestand `web/odata.php` niet aanpassen.
+- Bestand `web/logincheck.php` niet aanpassen tenzij expliciete goedkeuring door de gebruiker is gegeven.
+- Bestand `web/odata.php` niet aanpassen tenzij expliciete goedkeuring door de gebruiker is gegeven.
 - Bestand `web/auth.php` alleen aanpassen na expliciete gebruikersvraag.
 
 ## Data en logica werkorders
