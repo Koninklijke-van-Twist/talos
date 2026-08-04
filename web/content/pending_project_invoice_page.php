@@ -111,14 +111,22 @@ if (!isset($_SESSION['selected_project_manager_filter_by_user']) || !is_array($_
 }
 
 $requestedCompany = trim((string) ($_GET['company'] ?? ''));
-$isAllCompaniesSelection = $requestedCompany === '__all__';
+$storedCompany = trim((string) ($_SESSION['selected_company_by_user'][$userKey] ?? ''));
+if ($storedCompany === '__all__') {
+    $storedCompany = '';
+    unset($_SESSION['selected_company_by_user'][$userKey]);
+    unset($_SESSION['selected_company_environment_by_user'][$userKey]);
+}
+
 $selectedCompany = $requestedCompany !== ''
     ? $requestedCompany
-    : (string) ($_SESSION['selected_company_by_user'][$userKey] ?? '');
+    : $storedCompany;
 
-if ($isAllCompaniesSelection) {
+if ($selectedCompany === '__all__') {
     $selectedCompany = '';
 }
+
+$requiresCompanySelection = ($selectedCompany === '');
 
 $odataErrorPublic = null;
 $currentUserSetup = [
@@ -140,6 +148,19 @@ $projectManagerDisplayMap = [];
 $salespersonRowsForDisplay = [];
 $activeImpersonationManager = '';
 $activeImpersonationLabel = '';
+$availableCompanies = [];
+$pendingInvoiceLines = [];
+$upcomingInvoiceLines = [];
+$debugCompanyResults = [];
+$allLinesWithoutPlanningDate = 0;
+$isPartialResult = false;
+$chunkSize = 5;
+$currentPage = 1;
+$callsUsed = 0;
+$maxCalls = 0;
+$upcomingWindowLabel = '';
+$upcomingSectionTitle = '';
+$odataError = null;
 
 $hasStoredProjectManagerFilter = array_key_exists($userKey, $_SESSION['selected_project_manager_filter_by_user']);
 $storedProjectManagerFilter = trim((string) ($_SESSION['selected_project_manager_filter_by_user'][$userKey] ?? ''));
@@ -149,203 +170,208 @@ $storedProjectManagerFilter = trim((string) ($_SESSION['selected_project_manager
  */
 
 try {
-    $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
-    $availableCompanies = $buckets['available_companies'] ?? [];
-    $companyEnvironmentMap = $buckets['company_environment_map'] ?? [];
-    if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
-        setCompanyEnvironmentMap($companyEnvironmentMap);
-    }
+    if ($requiresCompanySelection) {
+        $activeEnvironments = function_exists('talosNormalizeEnvironmentList')
+            ? talosNormalizeEnvironmentList($environment)
+            : (is_array($environment) ? $environment : [trim((string) $environment)]);
 
-    $needsRefetch = false;
-    if (
-        $selectedCompany !== ''
-        && !empty($availableCompanies)
-        && !in_array($selectedCompany, $availableCompanies, true)
-    ) {
-        $selectedCompany = (string) $availableCompanies[0];
-        $needsRefetch = true;
-    }
-
-    if ($needsRefetch) {
+        $companyContext = fetchAvailableCompanyContext($baseUrl, $activeEnvironments, $auth);
+        $availableCompanies = $companyContext['available_companies'] ?? [];
+        $companyEnvironmentMap = $companyContext['company_environment_map'] ?? [];
+        if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
+            setCompanyEnvironmentMap($companyEnvironmentMap);
+        }
+    } else {
         $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
         $availableCompanies = $buckets['available_companies'] ?? [];
         $companyEnvironmentMap = $buckets['company_environment_map'] ?? [];
         if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
             setCompanyEnvironmentMap($companyEnvironmentMap);
         }
+
+        if (
+            $selectedCompany !== ''
+            && !empty($availableCompanies)
+            && !in_array($selectedCompany, $availableCompanies, true)
+        ) {
+            $selectedCompany = '';
+            $requiresCompanySelection = true;
+            unset($_SESSION['selected_company_by_user'][$userKey]);
+            unset($_SESSION['selected_company_environment_by_user'][$userKey]);
+        }
     }
 
-    $projectManagerAssignments = talosPmLoadHierarchyAssignments();
+    if ($requiresCompanySelection) {
+        // Alleen bedrijfslijst ophalen; facturatie-/salesperson-data wacht op keuze.
+        $odataError = null;
+    } else {
 
-    $singleCompanyScopeMap = talosPmSelectSingleCompanyEnvironmentMap((array) $companyEnvironmentMap, $selectedCompany);
+        $projectManagerAssignments = talosPmLoadHierarchyAssignments();
 
-    if ($isAdminUser) {
-        $adminUserSetupRows = [];
-        try {
-            $adminUserSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
-        } catch (Exception $ignored) {
+        $singleCompanyScopeMap = talosPmSelectSingleCompanyEnvironmentMap((array) $companyEnvironmentMap, $selectedCompany);
+
+        if ($isAdminUser) {
             $adminUserSetupRows = [];
-        }
-        $salespersonRowsForDisplay = $adminUserSetupRows;
-
-        $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $adminUserSetupRows);
-
-        $extraManagers = talosPmCollectManagerCandidates(
-            $adminUserSetupRows,
-            talosPmCollectProjectManagersFromBuckets($buckets)
-        );
-        foreach ($projectManagerAssignments as $managerName => $children) {
-            $extraManagers[] = (string) $managerName;
-            foreach ((array) $children as $childName) {
-                $extraManagers[] = (string) $childName;
+            try {
+                $adminUserSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
+            } catch (Exception $ignored) {
+                $adminUserSetupRows = [];
             }
-        }
+            $salespersonRowsForDisplay = $adminUserSetupRows;
 
-        $allProjectManagers = talosPmUniqueStrings($extraManagers);
-        $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($adminUserSetupRows, $allProjectManagers);
+            $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $adminUserSetupRows);
 
-        $requestedImpersonation = trim((string) ($_SESSION['pm_impersonation_by_user'][$userKey] ?? ''));
-        $activeImpersonationManager = talosPmResolveProjectManagerSelection($allProjectManagers, $requestedImpersonation);
-        if ($activeImpersonationManager === '' && $requestedImpersonation !== '') {
-            unset($_SESSION['pm_impersonation_by_user'][$userKey]);
-        }
+            $extraManagers = talosPmCollectManagerCandidates(
+                $adminUserSetupRows,
+                talosPmCollectProjectManagersFromBuckets($buckets)
+            );
+            foreach ($projectManagerAssignments as $managerName => $children) {
+                $extraManagers[] = (string) $managerName;
+                foreach ((array) $children as $childName) {
+                    $extraManagers[] = (string) $childName;
+                }
+            }
 
-        if ($activeImpersonationManager !== '') {
-            $activeImpersonationLabel = (string) ($projectManagerDisplayMap[$activeImpersonationManager] ?? $activeImpersonationManager);
-            $projectManagerDefaultSelection = $activeImpersonationManager;
+            $allProjectManagers = talosPmUniqueStrings($extraManagers);
+            $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($adminUserSetupRows, $allProjectManagers);
+
+            $requestedImpersonation = trim((string) ($_SESSION['pm_impersonation_by_user'][$userKey] ?? ''));
+            $activeImpersonationManager = talosPmResolveProjectManagerSelection($allProjectManagers, $requestedImpersonation);
+            if ($activeImpersonationManager === '' && $requestedImpersonation !== '') {
+                unset($_SESSION['pm_impersonation_by_user'][$userKey]);
+            }
+
+            if ($activeImpersonationManager !== '') {
+                $activeImpersonationLabel = (string) ($projectManagerDisplayMap[$activeImpersonationManager] ?? $activeImpersonationManager);
+                $projectManagerDefaultSelection = $activeImpersonationManager;
+                $allowedProjectManagers = talosPmGetAllowedProjectManagers(
+                    $projectManagerAssignments,
+                    $activeImpersonationManager,
+                    $allProjectManagers
+                );
+                if (empty($allowedProjectManagers)) {
+                    $allowedProjectManagers = [$activeImpersonationManager];
+                }
+
+                $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
+            } else {
+                $allowedProjectManagers = $allProjectManagers;
+                $projectManagerDefaultSelection = '';
+            }
+
+            if ($hasStoredProjectManagerFilter) {
+                $projectManagerFilterDefaultSelection = talosPmResolveProjectManagerSelection($allowedProjectManagers, $storedProjectManagerFilter);
+            }
+        } else {
+            $userSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
+            $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($userSetupRows, $currentUserEmail);
+
+            if (empty($currentUserSetup['found'])) {
+                throw new Exception(LOC('error.user_not_in_usersetup'), 40311);
+            }
+
+            $projectManagerDefaultSelection = trim((string) ($currentUserSetup['project_manager'] ?? ''));
+            if ($projectManagerDefaultSelection === '') {
+                throw new Exception(LOC('error.user_missing_project_manager'), 40312);
+            }
+
+            $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $userSetupRows);
+            $salespersonRowsForDisplay = $userSetupRows;
+
+            $allProjectManagers = talosPmCollectManagerCandidates(
+                $userSetupRows,
+                talosPmCollectProjectManagersFromBuckets($buckets)
+            );
+            $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($userSetupRows, $allProjectManagers);
+
             $allowedProjectManagers = talosPmGetAllowedProjectManagers(
                 $projectManagerAssignments,
-                $activeImpersonationManager,
+                $projectManagerDefaultSelection,
                 $allProjectManagers
             );
+
             if (empty($allowedProjectManagers)) {
-                $allowedProjectManagers = [$activeImpersonationManager];
+                $allowedProjectManagers = [$projectManagerDefaultSelection];
+            }
+
+            if ($hasStoredProjectManagerFilter) {
+                $projectManagerFilterDefaultSelection = talosPmResolveProjectManagerSelection($allowedProjectManagers, $storedProjectManagerFilter);
+            } else {
+                // Managers with descendants start on "everyone" by default.
+                $projectManagerFilterDefaultSelection = count($allowedProjectManagers) > 1 ? '' : $projectManagerDefaultSelection;
             }
 
             $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
-        } else {
-            $allowedProjectManagers = $allProjectManagers;
-            $projectManagerDefaultSelection = '';
         }
 
-        if ($hasStoredProjectManagerFilter) {
-            $projectManagerFilterDefaultSelection = talosPmResolveProjectManagerSelection($allowedProjectManagers, $storedProjectManagerFilter);
-        }
-    } else {
-        $userSetupRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
-        $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($userSetupRows, $currentUserEmail);
-
-        if (empty($currentUserSetup['found'])) {
-            throw new Exception(LOC('error.user_not_in_usersetup'), 40311);
+        if (empty($projectManagerDisplayMap)) {
+            $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap([], $allProjectManagers);
         }
 
-        $projectManagerDefaultSelection = trim((string) ($currentUserSetup['project_manager'] ?? ''));
-        if ($projectManagerDefaultSelection === '') {
-            throw new Exception(LOC('error.user_missing_project_manager'), 40312);
-        }
+        $buckets = talosPmApplyDisplayNamesToBuckets($buckets, $projectManagerDisplayMap);
+        $buckets = talosPmApplyCreatedByDisplayNamesToBuckets($buckets, $salespersonRowsForDisplay);
+        $projectManagerInvalidMatrix = talosPmBuildInvalidChildrenMatrix($allProjectManagers, $projectManagerAssignments);
 
-        $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $userSetupRows);
-        $salespersonRowsForDisplay = $userSetupRows;
-
-        $allProjectManagers = talosPmCollectManagerCandidates(
-            $userSetupRows,
-            talosPmCollectProjectManagersFromBuckets($buckets)
-        );
-        $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap($userSetupRows, $allProjectManagers);
-
-        $allowedProjectManagers = talosPmGetAllowedProjectManagers(
-            $projectManagerAssignments,
-            $projectManagerDefaultSelection,
-            $allProjectManagers
-        );
-
-        if (empty($allowedProjectManagers)) {
-            $allowedProjectManagers = [$projectManagerDefaultSelection];
-        }
-
-        if ($hasStoredProjectManagerFilter) {
-            $projectManagerFilterDefaultSelection = talosPmResolveProjectManagerSelection($allowedProjectManagers, $storedProjectManagerFilter);
-        } else {
-            // Managers with descendants start on "everyone" by default.
-            $projectManagerFilterDefaultSelection = count($allowedProjectManagers) > 1 ? '' : $projectManagerDefaultSelection;
-        }
-
-        $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
-    }
-
-    if (empty($projectManagerDisplayMap)) {
-        $projectManagerDisplayMap = talosPmBuildProjectManagerDisplayMap([], $allProjectManagers);
-    }
-
-    $buckets = talosPmApplyDisplayNamesToBuckets($buckets, $projectManagerDisplayMap);
-    $buckets = talosPmApplyCreatedByDisplayNamesToBuckets($buckets, $salespersonRowsForDisplay);
-    $projectManagerInvalidMatrix = talosPmBuildInvalidChildrenMatrix($allProjectManagers, $projectManagerAssignments);
-
-    if ($selectedCompany !== '') {
         $_SESSION['selected_company_by_user'][$userKey] = $selectedCompany;
         $selectedCompanyEnvironment = (string) ($buckets['selected_company_environment'] ?? '');
         if ($selectedCompanyEnvironment === '' && function_exists('getEnvironmentForCompany')) {
             $selectedCompanyEnvironment = (string) (getEnvironmentForCompany($selectedCompany) ?? '');
         }
         $_SESSION['selected_company_environment_by_user'][$userKey] = $selectedCompanyEnvironment;
-    } else {
-        $_SESSION['selected_company_by_user'][$userKey] = '__all__';
-        $_SESSION['selected_company_environment_by_user'][$userKey] = '__all__';
-    }
 
-    $debugCompanyResults = $buckets['debug_company_results'] ?? [];
-    $allLinesWithoutPlanningDate = (int) ($buckets['all_without_planning_date'] ?? 0);
-    $isPartialResult = !empty($buckets['is_partial']);
-    $chunkSize = (int) ($buckets['chunk_size'] ?? 5);
-    $currentPage = (int) ($buckets['page'] ?? 1);
-    $callsUsed = (int) ($buckets['calls_used'] ?? 0);
-    $maxCalls = (int) ($buckets['max_calls'] ?? 0);
+        $debugCompanyResults = $buckets['debug_company_results'] ?? [];
+        $allLinesWithoutPlanningDate = (int) ($buckets['all_without_planning_date'] ?? 0);
+        $isPartialResult = !empty($buckets['is_partial']);
+        $chunkSize = (int) ($buckets['chunk_size'] ?? 5);
+        $currentPage = (int) ($buckets['page'] ?? 1);
+        $callsUsed = (int) ($buckets['calls_used'] ?? 0);
+        $maxCalls = (int) ($buckets['max_calls'] ?? 0);
 
-    $pendingInvoiceLines = $buckets['overdue'];
+        $pendingInvoiceLines = $buckets['overdue'];
 
-    if (!empty($buckets['upcoming_month'])) {
-        $upcomingInvoiceLines = $buckets['upcoming_month'];
-        $upcomingWindowLabel = LOC('section.upcoming_month');
-        $upcomingSectionTitle = LOC('section.upcoming');
-    } elseif (!empty($buckets['upcoming_year'])) {
-        $upcomingInvoiceLines = $buckets['upcoming_year'];
-        $upcomingWindowLabel = LOC('section.upcoming_year');
-        $upcomingSectionTitle = LOC('section.upcoming');
-    } else {
-        $upcomingInvoiceLines = $buckets['all'];
-        $upcomingWindowLabel = LOC('section.all_rules');
-        $upcomingSectionTitle = LOC('section.all_rules');
-    }
+        if (!empty($buckets['upcoming_month'])) {
+            $upcomingInvoiceLines = $buckets['upcoming_month'];
+            $upcomingWindowLabel = LOC('section.upcoming_month');
+            $upcomingSectionTitle = LOC('section.upcoming');
+        } elseif (!empty($buckets['upcoming_year'])) {
+            $upcomingInvoiceLines = $buckets['upcoming_year'];
+            $upcomingWindowLabel = LOC('section.upcoming_year');
+            $upcomingSectionTitle = LOC('section.upcoming');
+        } else {
+            $upcomingInvoiceLines = $buckets['all'];
+            $upcomingWindowLabel = LOC('section.all_rules');
+            $upcomingSectionTitle = LOC('section.all_rules');
+        }
 
-    if (!empty($upcomingInvoiceLines) && $upcomingWindowLabel !== LOC('section.upcoming_month')) {
-        $batchMinDate = '';
-        $batchMaxDate = '';
-        foreach ($upcomingInvoiceLines as $line) {
-            $dateValue = (string) ($line['Planning_Date'] ?? '');
-            if ($dateValue === '') {
-                continue;
+        if (!empty($upcomingInvoiceLines) && $upcomingWindowLabel !== LOC('section.upcoming_month')) {
+            $batchMinDate = '';
+            $batchMaxDate = '';
+            foreach ($upcomingInvoiceLines as $line) {
+                $dateValue = (string) ($line['Planning_Date'] ?? '');
+                if ($dateValue === '') {
+                    continue;
+                }
+
+                if ($batchMinDate === '' || $dateValue < $batchMinDate) {
+                    $batchMinDate = $dateValue;
+                }
+                if ($batchMaxDate === '' || $dateValue > $batchMaxDate) {
+                    $batchMaxDate = $dateValue;
+                }
             }
 
-            if ($batchMinDate === '' || $dateValue < $batchMinDate) {
-                $batchMinDate = $dateValue;
-            }
-            if ($batchMaxDate === '' || $dateValue > $batchMaxDate) {
-                $batchMaxDate = $dateValue;
+            if ($batchMinDate !== '' && $batchMaxDate !== '') {
+                $upcomingWindowLabel = LOC(
+                    'section.week_batch_window',
+                    formatDate($batchMinDate),
+                    formatDate($batchMaxDate)
+                );
             }
         }
 
-        if ($batchMinDate !== '' && $batchMaxDate !== '') {
-            $upcomingWindowLabel = LOC(
-                'section.week_batch_window',
-                formatDate($batchMinDate),
-                formatDate($batchMaxDate)
-            );
-        }
+        $odataError = null;
     }
-
-    $odataError = null;
 } catch (Exception $e) {
-    $availableCompanies = [];
     $pendingInvoiceLines = [];
     $upcomingInvoiceLines = [];
     $debugCompanyResults = [];

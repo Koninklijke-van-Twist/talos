@@ -50,7 +50,15 @@ $showOdataErrorDetails = isset($_GET['debug_odata']) && (string) $_GET['debug_od
 $hideSapImports = !isset($_GET['hide_sap_imports']) || (string) $_GET['hide_sap_imports'] !== '0';
 $requestedCompany = trim((string) ($_GET['company'] ?? ''));
 $selectedCompany = $requestedCompany === '__all__' ? '' : $requestedCompany;
-$includeCompanyColumn = $selectedCompany === '';
+if ($selectedCompany === '') {
+    http_response_code(400);
+    echo json_encode([
+        'ok' => false,
+        'error' => LOC('filter.company_required_body'),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+$includeCompanyColumn = false;
 $currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
 $isAdminUser = !empty($_SESSION['user']['admin'])
     || strcasecmp($currentUserEmail, 'localtester@kvt.nl') === 0;

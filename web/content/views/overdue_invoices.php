@@ -544,6 +544,73 @@
             display: flex;
         }
 
+        .company-required-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(12, 24, 43, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1300;
+        }
+
+        .company-required-modal.open {
+            display: flex;
+        }
+
+        .company-required-modal-content {
+            width: min(420px, 100%);
+            background: #fff;
+            border: 1px solid #d0d7e2;
+            border-radius: 10px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+            padding: 1.25rem 1.35rem;
+        }
+
+        .company-required-modal-content h2 {
+            margin: 0 0 0.55rem;
+            font-size: 1.15rem;
+            color: #1a2a44;
+        }
+
+        .company-required-modal-content p {
+            margin: 0 0 1rem;
+            color: #44566f;
+            line-height: 1.4;
+        }
+
+        .company-required-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .company-required-form label {
+            font-weight: 600;
+            color: #1a2a44;
+        }
+
+        .company-required-form select,
+        .company-required-form button {
+            padding: 0.55rem 0.65rem;
+            border: 1px solid #c7ced9;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .company-required-form button {
+            background: #1a2a44;
+            color: #fff;
+            border-color: #1a2a44;
+            cursor: pointer;
+        }
+
+        .company-required-form button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
         .pm-admin-modal-content {
             width: min(1000px, 100%);
             max-height: 90vh;
@@ -734,13 +801,10 @@
             </div>
         <?php endif; ?>
 
-        <?php if (!empty($availableCompanies)): ?>
+        <?php if (!empty($availableCompanies) && empty($requiresCompanySelection)): ?>
             <form method="get" class="filters">
                 <label for="company-filter"><?= h(LOC('filter.company')) ?></label>
                 <select id="company-filter" name="company">
-                    <option value="__all__" <?= $selectedCompany === '' ? 'selected' : '' ?>>
-                        <?= h(LOC('filter.all_companies')) ?>
-                    </option>
                     <?php foreach ($availableCompanies as $companyName): ?>
                         <option value="<?= h($companyName) ?>" <?= $companyName === $selectedCompany ? 'selected' : '' ?>>
                             <?= h($companyName) ?>
@@ -797,7 +861,9 @@
             <?php endif; ?>
         <?php endif; ?>
 
-        <?php if ($odataError !== null): ?>
+        <?php if (!empty($requiresCompanySelection)): ?>
+            <div class="alert alert-info"><?= h(LOC('filter.company_required_body')) ?></div>
+        <?php elseif ($odataError !== null): ?>
             <div class="alert alert-danger"><?= h(LOC('error.odata_failed')) ?></div>
             <?php if (!empty($odataErrorPublic)): ?>
                 <div class="alert alert-danger" style="white-space: pre-wrap; font-family: Consolas, monospace;">
@@ -951,9 +1017,7 @@
 
             <?php
             $queryBase = [];
-            if ($selectedCompany === '') {
-                $queryBase['company'] = '__all__';
-            } else {
+            if ($selectedCompany !== '') {
                 $queryBase['company'] = $selectedCompany;
             }
             if (!empty($showOdataErrorDetails)) {
@@ -981,6 +1045,41 @@
         <?php endif; ?>
 
     </main>
+
+    <?php if (!empty($requiresCompanySelection)): ?>
+        <div class="company-required-modal open" id="company-required-modal" aria-hidden="false">
+            <div class="company-required-modal-content" role="dialog" aria-modal="true"
+                aria-labelledby="company-required-title">
+                <h2 id="company-required-title"><?= h(LOC('filter.company_required_title')) ?></h2>
+                <p><?= h(LOC('filter.company_required_body')) ?></p>
+                <?php if (empty($availableCompanies)): ?>
+                    <div class="alert alert-danger"><?= h(LOC('filter.company_required_empty')) ?></div>
+                <?php else: ?>
+                    <form method="get" class="company-required-form" id="company-required-form">
+                        <label for="company-required-select"><?= h(LOC('filter.company')) ?></label>
+                        <select id="company-required-select" name="company" required>
+                            <option value=""><?= h(LOC('filter.company_required_placeholder')) ?></option>
+                            <?php foreach ($availableCompanies as $companyName): ?>
+                                <option value="<?= h($companyName) ?>"><?= h($companyName) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (!empty($showOdataErrorDetails)): ?>
+                            <input type="hidden" name="debug_odata" value="1">
+                        <?php endif; ?>
+                        <?php if (!empty($debugFetchAllRules)): ?>
+                            <input type="hidden" name="debug_all_rules" value="1">
+                        <?php endif; ?>
+                        <?php if (!empty($hideSapImports)): ?>
+                            <input type="hidden" name="hide_sap_imports" value="1">
+                        <?php endif; ?>
+                        <button type="submit" id="company-required-submit" disabled>
+                            <?= h(LOC('filter.company_required_confirm')) ?>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if ($canInspectRows): ?>
         <div class="json-modal" id="json-inspector-modal" aria-hidden="true">
@@ -1075,9 +1174,10 @@
 
             const config = {
                 hasError: <?= $odataError !== null ? 'true' : 'false' ?>,
+                requiresCompanySelection: <?= !empty($requiresCompanySelection) ? 'true' : 'false' ?>,
                 endpoint: 'project_billing_stream.php',
                 inspectorEndpoint: 'project_billing_row_inspect.php',
-                company: <?= json_encode($selectedCompany === '' ? '__all__' : $selectedCompany, JSON_UNESCAPED_UNICODE) ?>,
+                company: <?= json_encode($selectedCompany, JSON_UNESCAPED_UNICODE) ?>,
                 debugOdata: <?= !empty($showOdataErrorDetails) ? 'true' : 'false' ?>,
                 debugAllRules: <?= !empty($debugFetchAllRules) ? 'true' : 'false' ?>,
                 hideSapImports: <?= !empty($hideSapImports) ? 'true' : 'false' ?>,
@@ -1128,8 +1228,20 @@
                 });
             }
 
-            if (config.hasError)
+            if (config.hasError || config.requiresCompanySelection)
             {
+                const companyRequiredSelectEl = document.getElementById('company-required-select');
+                const companyRequiredSubmitEl = document.getElementById('company-required-submit');
+                if (companyRequiredSelectEl && companyRequiredSubmitEl)
+                {
+                    const syncCompanyRequiredSubmit = function ()
+                    {
+                        companyRequiredSubmitEl.disabled = companyRequiredSelectEl.value === '';
+                    };
+                    companyRequiredSelectEl.addEventListener('change', syncCompanyRequiredSubmit);
+                    syncCompanyRequiredSubmit();
+                    companyRequiredSelectEl.focus();
+                }
                 return;
             }
 
