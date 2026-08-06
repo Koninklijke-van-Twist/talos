@@ -331,43 +331,14 @@ try {
 
         if (!empty($buckets['upcoming_month'])) {
             $upcomingInvoiceLines = $buckets['upcoming_month'];
-            $upcomingWindowLabel = LOC('section.upcoming_month');
-            $upcomingSectionTitle = LOC('section.upcoming');
         } elseif (!empty($buckets['upcoming_year'])) {
             $upcomingInvoiceLines = $buckets['upcoming_year'];
-            $upcomingWindowLabel = LOC('section.upcoming_year');
-            $upcomingSectionTitle = LOC('section.upcoming');
         } else {
             $upcomingInvoiceLines = $buckets['all'];
-            $upcomingWindowLabel = LOC('section.all_rules');
-            $upcomingSectionTitle = LOC('section.all_rules');
         }
 
-        if (!empty($upcomingInvoiceLines) && $upcomingWindowLabel !== LOC('section.upcoming_month')) {
-            $batchMinDate = '';
-            $batchMaxDate = '';
-            foreach ($upcomingInvoiceLines as $line) {
-                $dateValue = (string) ($line['Planning_Date'] ?? '');
-                if ($dateValue === '') {
-                    continue;
-                }
-
-                if ($batchMinDate === '' || $dateValue < $batchMinDate) {
-                    $batchMinDate = $dateValue;
-                }
-                if ($batchMaxDate === '' || $dateValue > $batchMaxDate) {
-                    $batchMaxDate = $dateValue;
-                }
-            }
-
-            if ($batchMinDate !== '' && $batchMaxDate !== '') {
-                $upcomingWindowLabel = LOC(
-                    'section.week_batch_window',
-                    formatDate($batchMinDate),
-                    formatDate($batchMaxDate)
-                );
-            }
-        }
+        $upcomingSectionTitle = LOC('section.upcoming');
+        $upcomingWindowLabel = '';
 
         $odataError = null;
     }

@@ -130,6 +130,8 @@ class ProjectBillingTest extends TestCase
 
         $this->assertStringContainsString('?$filter=', $url);
         $this->assertStringContainsString('&$select=', $url);
+        $this->assertStringNotContainsString('$skip=', $url);
+        $this->assertStringNotContainsString('$top=', $url);
         $selectPart = explode('&$select=', $url, 2);
         $this->assertCount(2, $selectPart);
 

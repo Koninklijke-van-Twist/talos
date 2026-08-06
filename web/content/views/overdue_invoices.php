@@ -959,7 +959,7 @@
 
             <?php if (!empty($upcomingInvoiceLines)): ?>
                 <div class="summary">
-                    <strong><?= h($upcomingSectionTitle) ?> (<?= h($upcomingWindowLabel) ?>):</strong>
+                    <strong><?= h($upcomingSectionTitle) ?>:</strong>
                     <?= h(LOC('summary.total')) ?> <strong
                         id="upcoming-summary-count"><?= count($upcomingInvoiceLines) ?></strong>
                     <span
@@ -1182,6 +1182,7 @@
                 debugAllRules: <?= !empty($debugFetchAllRules) ? 'true' : 'false' ?>,
                 hideSapImports: <?= !empty($hideSapImports) ? 'true' : 'false' ?>,
                 startPage: <?= (int) $currentPage + 1 ?>,
+                isPartial: <?= !empty($isPartialResult) ? 'true' : 'false' ?>,
                 maxPagesToLoad: 250,
                 failedText: <?= json_encode(LOC('msg.stream_table_failed'), JSON_UNESCAPED_UNICODE) ?>,
                 doneText: <?= json_encode(LOC('msg.stream_table_done'), JSON_UNESCAPED_UNICODE) ?>,
@@ -1788,6 +1789,11 @@
                 syncLiveFiltersFromRows();
                 updateRowVisibilityBasedOnStatus();
                 updateColumnVisibility();
+
+                if (!config.isPartial)
+                {
+                    return;
+                }
 
                 setLoadingRowVisibility(true);
 

@@ -18,25 +18,17 @@ require_once __DIR__ . '/odata.php';
 function selectUpcomingBucket(array $buckets): array
 {
     if (!empty($buckets['upcoming_month'])) {
-        return [
-            'rows' => $buckets['upcoming_month'],
-            'title' => LOC('section.upcoming'),
-            'window_label' => LOC('section.upcoming_month'),
-        ];
-    }
-
-    if (!empty($buckets['upcoming_year'])) {
-        return [
-            'rows' => $buckets['upcoming_year'],
-            'title' => LOC('section.upcoming'),
-            'window_label' => LOC('section.upcoming_year'),
-        ];
+        $rows = $buckets['upcoming_month'];
+    } elseif (!empty($buckets['upcoming_year'])) {
+        $rows = $buckets['upcoming_year'];
+    } else {
+        $rows = $buckets['all'] ?? [];
     }
 
     return [
-        'rows' => $buckets['all'] ?? [],
-        'title' => LOC('section.all_rules'),
-        'window_label' => LOC('section.all_rules'),
+        'rows' => $rows,
+        'title' => LOC('section.upcoming'),
+        'window_label' => '',
     ];
 }
 

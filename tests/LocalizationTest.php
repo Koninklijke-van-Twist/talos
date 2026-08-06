@@ -84,5 +84,6 @@ class LocalizationTest extends TestCase
         $this->assertSame('Projectstatus', LOC('table.jobcard_status'));
         $this->assertSame('Aangemaakt door', LOC('table.accountmanager'));
         $this->assertSame('Quantity', LOC('table.quantity_to_invoice'));
+        $this->assertSame('Toekomstig', LOC('section.upcoming'));
     }
 }

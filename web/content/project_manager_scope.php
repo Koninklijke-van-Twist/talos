@@ -5,7 +5,7 @@
  */
 
 const TALOS_PM_HIERARCHY_PATH = __DIR__ . '/../data/project_manager_hierarchy.json';
-const TALOS_PM_SCOPE_CACHE_TTL_SECONDS = 43200;
+const TALOS_PM_SCOPE_CACHE_TTL_SECONDS = 82800; // 23 hours
 
 /**
  * Functions

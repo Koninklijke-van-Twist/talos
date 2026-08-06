@@ -4,10 +4,11 @@
  * Functies
  */
 
-const PROJECT_BILLING_CACHE_TTL_SECONDS = 43200;
+const PROJECT_BILLING_CACHE_TTL_SECONDS = 82800; // 23 hours
 const PROJECT_BILLING_FALLBACK_ALL_MAX_WEEKS = 104;
 const PROJECT_BILLING_CHUNK_SIZE = 5;
 const PROJECT_BILLING_MAX_CALLS_PER_REQUEST = 40;
+const PROJECT_BILLING_JOB_LOOKUP_BATCH_SIZE = 50;
 
 function buildProjectInvoiceSelectClause(): string
 {
@@ -105,28 +106,30 @@ function fetchProjectDetailsByJobNumbers(
     }
 
     $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $companyName);
-    $jobNumbers = array_unique(array_filter(array_map('trim', $jobNumbers)));
+    $jobNumbers = array_values(array_unique(array_filter(array_map('trim', $jobNumbers))));
     if (empty($jobNumbers)) {
         return [];
     }
 
-    $filterParts = array_map(
-        static fn(string $jobNo): string => "No eq '" . str_replace("'", "''", $jobNo) . "'",
-        $jobNumbers
-    );
-    $filterClause = '(' . implode(' or ', $filterParts) . ')';
-
-    $queryUrl = $companyBaseUrl . 'Projecten'
-        . '?$filter=' . rawurlencode($filterClause)
-        . '&$select=No,KVT_Sales_Person_Code,Project_Manager,LVS_Global_Dimension_1_Code,Status';
-
-    $projects = odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
-
     $indexed = [];
-    foreach ($projects as $project) {
-        $no = (string) ($project['No'] ?? '');
-        if ($no !== '') {
-            $indexed[$no] = $project;
+    $batches = array_chunk($jobNumbers, PROJECT_BILLING_JOB_LOOKUP_BATCH_SIZE);
+    foreach ($batches as $batch) {
+        $filterParts = array_map(
+            static fn(string $jobNo): string => "No eq '" . str_replace("'", "''", $jobNo) . "'",
+            $batch
+        );
+        $filterClause = '(' . implode(' or ', $filterParts) . ')';
+
+        $queryUrl = $companyBaseUrl . 'Projecten'
+            . '?$filter=' . rawurlencode($filterClause)
+            . '&$select=No,KVT_Sales_Person_Code,Project_Manager,LVS_Global_Dimension_1_Code,Status';
+
+        $projects = odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
+        foreach ($projects as $project) {
+            $no = (string) ($project['No'] ?? '');
+            if ($no !== '') {
+                $indexed[$no] = $project;
+            }
         }
     }
 
@@ -176,15 +179,15 @@ function fetchProjectInvoiceRowsForCompanyWindow(
     int $top = PROJECT_BILLING_CHUNK_SIZE
 ): array {
     $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $companyName);
-
     $selectClause = buildProjectInvoiceSelectClause();
-    $queryUrl = $companyBaseUrl . 'FactureerbareProjectPlanningsRegels'
-        . '?$select=' . $selectClause
-        . '&$orderby=' . rawurlencode('Planning_Date asc')
-        . '&$top=' . max(1, $top)
-        . '&$skip=' . max(0, $skip);
 
-    if (!$debugFetchAllRules) {
+    // Stable URLs (no $skip/$top): odata_get_all follows @odata.nextLink and caches the full set.
+    // Nightly and page-load share the same cache keys this way.
+    if ($debugFetchAllRules) {
+        $queryUrl = $companyBaseUrl . 'FactureerbareProjectPlanningsRegels'
+            . '?$select=' . $selectClause
+            . '&$orderby=' . rawurlencode('Planning_Date asc');
+    } else {
         $filters = ['Qty_to_Invoice gt 0'];
         $filters[] = "(No eq '800000' or No eq '800001')";
         // Standard BC option values for Work Order status.
@@ -199,9 +202,7 @@ function fetchProjectInvoiceRowsForCompanyWindow(
         $queryUrl = $companyBaseUrl . 'FactureerbareProjectPlanningsRegels'
             . '?$filter=' . rawurlencode(implode(' and ', $filters))
             . '&$select=' . $selectClause
-            . '&$orderby=' . rawurlencode('Planning_Date asc')
-            . '&$top=' . max(1, $top)
-            . '&$skip=' . max(0, $skip);
+            . '&$orderby=' . rawurlencode('Planning_Date asc');
     }
 
     return odata_get_all($queryUrl, $auth, PROJECT_BILLING_CACHE_TTL_SECONDS);
@@ -259,11 +260,11 @@ function mergeCompanyRowsForWindow(
                 $startDate,
                 $endDate,
                 $debugFetchAllRules,
-                $skip,
+                0,
                 PROJECT_BILLING_CHUNK_SIZE
             );
 
-            if (!empty($rows) && $callCount < PROJECT_BILLING_MAX_CALLS_PER_REQUEST) {
+            if (!empty($rows)) {
                 $jobNumbers = array_values(array_filter(array_map(
                     static fn(array $row): string => (string) ($row['Job_No'] ?? ''),
                     $rows
@@ -420,12 +421,10 @@ function fetchProjectInvoiceBuckets(
     $firstErrorMessage = null;
     $callCount = 0;
     $limitReached = false;
-    $pageIndex = max(1, (int) ($_GET['page'] ?? 1));
-    $skip = ($pageIndex - 1) * PROJECT_BILLING_CHUNK_SIZE;
+    $pageIndex = 1;
+    $skip = 0;
 
-    $streamMode = isset($_GET['stream']) && (string) $_GET['stream'] === '1';
-
-    if ($debugFetchAllRules || $streamMode) {
+    if ($debugFetchAllRules) {
         $allLines = mergeCompanyRowsForWindow(
             $companyNames,
             $companyEnvironmentMap,
@@ -434,7 +433,7 @@ function fetchProjectInvoiceBuckets(
             $auth,
             null,
             null,
-            $debugFetchAllRules,
+            true,
             $skip,
             $hideSapImports,
             $debugCompanyResults,
