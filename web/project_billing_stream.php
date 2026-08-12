@@ -52,8 +52,6 @@ if ($selectedCompany === '') {
 }
 $includeCompanyColumn = false;
 $currentUserEmail = (string) ($_SESSION['user']['email'] ?? '');
-$isAdminUser = !empty($_SESSION['user']['admin'])
-    || strcasecmp($currentUserEmail, 'localtester@kvt.nl') === 0;
 $canInspectRows = $currentUserEmail === '' || in_array($currentUserEmail, $ictUsers ?? [], true);
 $userKey = (string) ($_SESSION['user']['email'] ?? 'anonymous');
 
@@ -96,69 +94,11 @@ try {
     $salespersonRows = [];
     try {
         $salespersonRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
-    } catch (Exception $e) {
-        if (!$isAdminUser) {
-            throw $e;
-        }
+    } catch (Exception $ignored) {
         $salespersonRows = [];
     }
 
     $buckets = talosPmRemapLegacyManagerCodesInBuckets($buckets, $salespersonRows);
-
-    if ($isAdminUser) {
-        $projectManagerAssignments = talosPmLoadHierarchyAssignments();
-        $extraManagers = talosPmCollectManagerCandidates(
-            $salespersonRows,
-            talosPmCollectProjectManagersFromBuckets($buckets)
-        );
-        foreach ($projectManagerAssignments as $managerName => $children) {
-            $extraManagers[] = (string) $managerName;
-            foreach ((array) $children as $childName) {
-                $extraManagers[] = (string) $childName;
-            }
-        }
-
-        $allProjectManagers = talosPmUniqueStrings($extraManagers);
-        $requestedImpersonation = trim((string) ($_SESSION['pm_impersonation_by_user'][$userKey] ?? ''));
-        $activeImpersonationManager = talosPmResolveProjectManagerSelection($allProjectManagers, $requestedImpersonation);
-        if ($activeImpersonationManager !== '') {
-            $allowedProjectManagers = talosPmGetAllowedProjectManagers(
-                $projectManagerAssignments,
-                $activeImpersonationManager,
-                $allProjectManagers
-            );
-            if (empty($allowedProjectManagers)) {
-                $allowedProjectManagers = [$activeImpersonationManager];
-            }
-
-            $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
-        }
-    }
-
-    if (!$isAdminUser) {
-        $currentUserSetup = talosPmResolveCurrentUserFromUserSetup($salespersonRows, $currentUserEmail);
-        if (empty($currentUserSetup['found'])) {
-            throw new Exception(LOC('error.user_not_in_usersetup'), 40311);
-        }
-
-        $userProjectManager = trim((string) ($currentUserSetup['project_manager'] ?? ''));
-        if ($userProjectManager === '') {
-            throw new Exception(LOC('error.user_missing_project_manager'), 40312);
-        }
-
-        $allProjectManagers = talosPmCollectManagerCandidates(
-            $salespersonRows,
-            talosPmCollectProjectManagersFromBuckets($buckets)
-        );
-
-        $assignments = talosPmLoadHierarchyAssignments();
-        $allowedProjectManagers = talosPmGetAllowedProjectManagers($assignments, $userProjectManager, $allProjectManagers);
-        if (empty($allowedProjectManagers)) {
-            $allowedProjectManagers = [$userProjectManager];
-        }
-
-        $buckets = talosPmFilterBucketsByAllowedManagers($buckets, $allowedProjectManagers);
-    }
 
     $displayMap = talosPmBuildProjectManagerDisplayMap(
         $salespersonRows,
@@ -166,6 +106,9 @@ try {
     );
     $buckets = talosPmApplyDisplayNamesToBuckets($buckets, $displayMap);
     $buckets = talosPmApplyCreatedByDisplayNamesToBuckets($buckets, $salespersonRows);
+    if (function_exists('talosFilterBucketsByAllowedDepartments')) {
+        $buckets = talosFilterBucketsByAllowedDepartments($buckets, talosCurrentUserAllowedDepartments());
+    }
 
     $upcoming = selectUpcomingBucket($buckets);
     $pendingRows = array_values($buckets['overdue'] ?? []);
@@ -200,10 +143,6 @@ try {
         'ok' => false,
         'error' => LOC('error.odata_failed'),
     ];
-
-    if (in_array((int) $e->getCode(), [40311, 40312], true)) {
-        $payload['error'] = $e->getMessage();
-    }
 
     if ($showOdataErrorDetails) {
         $payload['details'] = $e->getMessage();

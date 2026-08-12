@@ -2,6 +2,8 @@
 
 const DEBUG_EVERYONE_IS_ADMIN = false;
 
+require_once __DIR__ . '/content/department_access.php';
+
 function is_trusted_requester(): bool
 {
     $remote = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -24,25 +26,38 @@ if (!is_trusted_requester()) {
         session_start();
     }
 
+    $currentEmail = talosNormalizeEmail((string) ($_SESSION['user']['email'] ?? ''));
     $_SESSION['user']['admin'] = false;
+    $_SESSION['user']['allowed_departments'] = [];
 
-    if (
-        DEBUG_EVERYONE_IS_ADMIN ||
-        array_any($ictUsers, function ($email) {
-            return strtolower((string) $email) === strtolower((string) ($_SESSION['user']['email'] ?? ''));
-        })
-    ) {
+    $isIctUser = DEBUG_EVERYONE_IS_ADMIN || talosIsIctUserEmail($currentEmail);
+
+    if ($isIctUser) {
         $_SESSION['user']['admin'] = true;
+        $_SESSION['user']['allowed_departments'] = null;
+    } else {
+        $departments = talosDepartmentsForEmail($currentEmail);
+        if ($departments === []) {
+            require __DIR__ . "/../login/403.php";
+            die();
+        }
+
+        $_SESSION['user']['allowed_departments'] = $departments;
     }
 
-    if (
-        isset($allowedUsers) &&
-        !array_any($allowedUsers, function ($email) {
-            return strtolower((string) $email) === strtolower((string) ($_SESSION['user']['email'] ?? ''));
-        })
-    ) {
-        require __DIR__ . "/../login/403.php";
-        die();
+    if (isset($allowedUsers)) {
+        $sessionEmail = strtolower((string) ($_SESSION['user']['email'] ?? ''));
+        $isAllowedUser = false;
+        foreach ($allowedUsers as $email) {
+            if (strtolower((string) $email) === $sessionEmail) {
+                $isAllowedUser = true;
+                break;
+            }
+        }
+        if (!$isAllowedUser) {
+            require __DIR__ . "/../login/403.php";
+            die();
+        }
     }
 
 } else {
@@ -51,5 +66,6 @@ if (!is_trusted_requester()) {
         'name' => (string) ('Local Tester'),
         'oid' => (string) ('12345'),
         'admin' => true,
+        'allowed_departments' => null,
     ];
 }

@@ -50,6 +50,248 @@
             position: relative;
         }
 
+        .dept-access-gear {
+            position: fixed;
+            top: 4.25rem;
+            right: 0.85rem;
+            z-index: 1400;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #c7ced9;
+            border-radius: 8px;
+            background: #fff;
+            color: #1a2a44;
+            font-size: 1.15rem;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .dept-access-panel {
+            position: fixed;
+            top: 7rem;
+            right: 0.85rem;
+            width: min(420px, calc(100vw - 1.5rem));
+            max-height: calc(100vh - 4.5rem);
+            overflow: auto;
+            background: #fff;
+            border: 1px solid #d0d7e2;
+            border-radius: 10px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+            z-index: 1400;
+            display: none;
+            padding: 0.9rem 1rem 1rem;
+        }
+
+        .dept-access-panel.open {
+            display: block;
+        }
+
+        .dept-access-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .dept-access-panel-header strong {
+            color: #1a2a44;
+        }
+
+        .dept-access-panel-close {
+            border: 1px solid #c7ced9;
+            background: #fff;
+            border-radius: 6px;
+            padding: 0.2rem 0.45rem;
+            cursor: pointer;
+        }
+
+        .dept-access-add-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 0.9rem;
+            position: relative;
+        }
+
+        .dept-access-add-row label {
+            font-weight: 600;
+            color: #1a2a44;
+            font-size: 0.9rem;
+        }
+
+        .dept-access-add-controls {
+            display: flex;
+            gap: 0.45rem;
+        }
+
+        .dept-access-add-controls input {
+            flex: 1;
+            padding: 0.45rem 0.55rem;
+            border: 1px solid #c7ced9;
+            border-radius: 6px;
+        }
+
+        .dept-access-add-controls button {
+            border: 1px solid #1a2a44;
+            background: #1a2a44;
+            color: #fff;
+            border-radius: 6px;
+            padding: 0.45rem 0.7rem;
+            cursor: pointer;
+        }
+
+        .dept-access-suggestions {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 0.15rem);
+            background: #fff;
+            border: 1px solid #c7ced9;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            max-height: 220px;
+            overflow: auto;
+            display: none;
+            z-index: 5;
+        }
+
+        .dept-access-suggestions.open {
+            display: block;
+        }
+
+        .dept-access-suggestion {
+            width: 100%;
+            text-align: left;
+            border: 0;
+            background: #fff;
+            padding: 0.5rem 0.65rem;
+            cursor: pointer;
+        }
+
+        .dept-access-suggestion:hover,
+        .dept-access-suggestion.active {
+            background: #edf5ff;
+        }
+
+        .dept-access-suggestion small {
+            display: block;
+            color: #66788f;
+        }
+
+        .dept-access-users-title {
+            font-weight: 600;
+            color: #1a2a44;
+            margin-bottom: 0.45rem;
+        }
+
+        .dept-access-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .dept-access-group-separator {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #44566f;
+            background: #eef2f7;
+            border: 1px solid #d5dde8;
+            border-radius: 6px;
+            padding: 0.35rem 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .dept-access-user-btn {
+            width: 100%;
+            text-align: left;
+            border: 1px solid #d5dde8;
+            background: #fff;
+            border-radius: 6px;
+            padding: 0.45rem 0.55rem;
+            margin-bottom: 0.3rem;
+            cursor: pointer;
+            color: #1a2a44;
+        }
+
+        .dept-access-user-btn:hover {
+            background: #edf5ff;
+            border-color: #90b4da;
+        }
+
+        .dept-access-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(12, 24, 43, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 1500;
+        }
+
+        .dept-access-modal.open {
+            display: flex;
+        }
+
+        .dept-access-modal-content {
+            width: min(480px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #d0d7e2;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+            padding: 1.1rem 1.2rem;
+        }
+
+        .dept-access-modal-content h2 {
+            margin: 0 0 0.85rem;
+            font-size: 1.05rem;
+            color: #1a2a44;
+        }
+
+        .dept-access-checks {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 1rem;
+            max-height: 50vh;
+            overflow: auto;
+        }
+
+        .dept-access-check-line {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.92rem;
+            color: #1a2a44;
+        }
+
+        .dept-access-modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .dept-access-modal-actions button {
+            border-radius: 6px;
+            padding: 0.45rem 0.75rem;
+            cursor: pointer;
+        }
+
+        .dept-access-modal-save {
+            background: #1a2a44;
+            color: #fff;
+            border: 1px solid #1a2a44;
+        }
+
+        .dept-access-modal-cancel {
+            background: #fff;
+            color: #1a2a44;
+            border: 1px solid #c7ced9;
+        }
+
         .admin-open-btn {
             border: 1px solid #c7ced9;
             border-radius: 6px;
@@ -527,24 +769,7 @@
 
         .json-null {
             color: #ff9a9a;
-        }
-
-        .pm-admin-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(12, 24, 43, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            z-index: 1200;
-        }
-
-        .pm-admin-modal.open {
-            display: flex;
-        }
-
-        .company-required-modal {
+        }        .company-required-modal {
             position: fixed;
             inset: 0;
             background: rgba(12, 24, 43, 0.55);
@@ -609,97 +834,7 @@
         .company-required-form button:disabled {
             opacity: 0.55;
             cursor: not-allowed;
-        }
-
-        .pm-admin-modal-content {
-            width: min(1000px, 100%);
-            max-height: 90vh;
-            overflow: auto;
-            background: #fff;
-            border-radius: 10px;
-            border: 1px solid #d0d7e2;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            padding: 0.9rem;
-        }
-
-        .pm-admin-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-            gap: 0.75rem;
-        }
-
-        .pm-admin-close {
-            border: 1px solid #c7ced9;
-            border-radius: 6px;
-            padding: 0.35rem 0.55rem;
-            background: #fff;
-            cursor: pointer;
-        }
-
-        .pm-admin-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.4fr;
-            gap: 1rem;
-        }
-
-        .pm-admin-column h3 {
-            font-size: 0.9rem;
-            color: #1a2a44;
-            margin-bottom: 0.5rem;
-        }
-
-        .pm-admin-manager-list,
-        .pm-admin-children-list {
-            border: 1px solid #d0d7e2;
-            border-radius: 8px;
-            padding: 0.5rem;
-            max-height: 55vh;
-            overflow: auto;
-            background: #f9fbfe;
-        }
-
-        .pm-admin-manager-item {
-            width: 100%;
-            text-align: left;
-            border: 1px solid #d7dee8;
-            border-radius: 6px;
-            background: #fff;
-            padding: 0.45rem 0.5rem;
-            margin-bottom: 0.35rem;
-            cursor: pointer;
-            color: #1a2a44;
-        }
-
-        .pm-admin-manager-item.active {
-            border-color: #1a2a44;
-            background: #e9eef8;
-            font-weight: 600;
-        }
-
-        .pm-admin-child-option {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            padding: 0.2rem 0;
-        }
-
-        .pm-admin-child-option.disabled {
-            opacity: 0.55;
-        }
-
-        .pm-admin-save {
-            margin-top: 0.7rem;
-            border: 1px solid #1a2a44;
-            border-radius: 6px;
-            background: #1a2a44;
-            color: #fff;
-            padding: 0.45rem 0.65rem;
-            cursor: pointer;
-        }
-
-        @media (max-width: 600px) {
+        }        @media (max-width: 600px) {
             header h1 {
                 font-size: 0.95rem;
             }
@@ -709,14 +844,51 @@
                 padding: 0.5rem 0.6rem;
             }
 
-            .pm-admin-grid {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
 
 <body>
+
+    <?php if (!empty($isAdminUser)): ?>
+        <button type="button" class="dept-access-gear" id="dept-access-gear"
+            title="<?= h(LOC('dept_access.button_title')) ?>"
+            aria-label="<?= h(LOC('dept_access.button_title')) ?>">⚙</button>
+
+        <div class="dept-access-panel" id="dept-access-panel" aria-hidden="true">
+            <div class="dept-access-panel-header">
+                <strong><?= h(LOC('dept_access.panel_title')) ?></strong>
+                <button type="button" class="dept-access-panel-close"
+                    id="dept-access-panel-close"><?= h(LOC('dept_access.close')) ?></button>
+            </div>
+
+            <div class="dept-access-add-row">
+                <label for="dept-access-email"><?= h(LOC('dept_access.email_label')) ?></label>
+                <div class="dept-access-add-controls">
+                    <input type="text" id="dept-access-email" autocomplete="off"
+                        placeholder="<?= h(LOC('dept_access.email_placeholder')) ?>">
+                    <button type="button" id="dept-access-add"><?= h(LOC('dept_access.add')) ?></button>
+                </div>
+                <div class="dept-access-suggestions" id="dept-access-suggestions"></div>
+            </div>
+
+            <div class="dept-access-users-title"><?= h(LOC('dept_access.users_title')) ?></div>
+            <div id="dept-access-user-list"></div>
+        </div>
+
+        <div class="dept-access-modal" id="dept-access-modal" aria-hidden="true">
+            <div class="dept-access-modal-content" role="dialog" aria-modal="true">
+                <h2 id="dept-access-modal-title"></h2>
+                <div class="dept-access-checks" id="dept-access-checks"></div>
+                <div class="dept-access-modal-actions">
+                    <button type="button" class="dept-access-modal-cancel"
+                        id="dept-access-modal-cancel"><?= h(LOC('dept_access.cancel')) ?></button>
+                    <button type="button" class="dept-access-modal-save"
+                        id="dept-access-modal-save"><?= h(LOC('dept_access.save')) ?></button>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php
     $currentLanguage = getCurrentLanguage();
@@ -732,9 +904,6 @@
     if ($projectManagerOwnLabel === '' && $projectManagerDefault !== '') {
         $projectManagerOwnLabel = (string) ($projectManagerDisplayLookup[$projectManagerDefault] ?? $projectManagerDefault);
     }
-    $projectManagerAssignmentMap = is_array($projectManagerAssignments ?? null) ? $projectManagerAssignments : [];
-    $projectManagerInvalidMap = is_array($projectManagerInvalidMatrix ?? null) ? $projectManagerInvalidMatrix : [];
-    $adminFlashPayload = is_array($adminFlash ?? null) ? $adminFlash : null;
     $authDebug = [
         'email' => (string) ($_SESSION['user']['email'] ?? ''),
         'admin' => !empty($_SESSION['user']['admin']),
@@ -746,10 +915,15 @@
             static fn($email): string => strtolower(trim((string) $email)),
             is_array($ictUsers ?? null) ? $ictUsers : []
         )),
-        'ict_match' => array_any(
-            is_array($ictUsers ?? null) ? $ictUsers : [],
-            static fn($email): bool => strtolower(trim((string) $email)) === strtolower(trim((string) ($_SESSION['user']['email'] ?? '')))
-        ),
+        'ict_match' => (static function () use ($ictUsers): bool {
+            $email = strtolower(trim((string) ($_SESSION['user']['email'] ?? '')));
+            foreach (is_array($ictUsers ?? null) ? $ictUsers : [] as $candidate) {
+                if (strtolower(trim((string) $candidate)) === $email) {
+                    return true;
+                }
+            }
+            return false;
+        })(),
     ];
     $languageLinks = [];
     foreach (array_keys(SUPPORTED_LANGUAGES) as $languageCode) {
@@ -769,11 +943,6 @@
     <header>
         <img src="logo-website.png" alt="KVT">
         <h1><?= h(LOC('page.overdue_invoices.heading')) ?></h1>
-        <?php if (!empty($isAdminUser)): ?>
-            <button type="button" class="admin-open-btn" id="pm-admin-open">
-                <?= h(LOC('pm_admin.button')) ?>
-            </button>
-        <?php endif; ?>
         <div class="language-switch" id="language-switch">
             <button type="button" id="language-switch-button" aria-label="Language">
                 <?= getLanguageFlagSvg($currentLanguage) ?>
@@ -789,18 +958,6 @@
     </header>
 
     <main>
-        <?php if ($adminFlashPayload !== null): ?>
-            <div class="alert <?= ($adminFlashPayload['type'] ?? '') === 'success' ? 'alert-info' : 'alert-danger' ?>">
-                <?= h((string) ($adminFlashPayload['message'] ?? '')) ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($isAdminUser) && trim((string) ($activeImpersonationManager ?? '')) !== ''): ?>
-            <div class="alert alert-info">
-                <?= h(LOC('pm_admin.impersonating_as', (string) ($activeImpersonationLabel !== '' ? $activeImpersonationLabel : $activeImpersonationManager))) ?>
-            </div>
-        <?php endif; ?>
-
         <?php if (!empty($availableCompanies) && empty($requiresCompanySelection)): ?>
             <form method="get" class="filters">
                 <label for="company-filter"><?= h(LOC('filter.company')) ?></label>
@@ -1093,45 +1250,6 @@
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($isAdminUser)): ?>
-        <div class="pm-admin-modal" id="pm-admin-modal" aria-hidden="true">
-            <div class="pm-admin-modal-content" role="dialog" aria-modal="true"
-                aria-label="<?= h(LOC('pm_admin.title')) ?>">
-                <div class="pm-admin-header">
-                    <strong><?= h(LOC('pm_admin.title')) ?></strong>
-                    <button type="button" class="pm-admin-close"
-                        id="pm-admin-close"><?= h(LOC('pm_admin.close')) ?></button>
-                </div>
-
-                <div class="pm-admin-grid">
-                    <div class="pm-admin-column">
-                        <h3><?= h(LOC('pm_admin.manager_list_label')) ?></h3>
-                        <div id="pm-admin-manager-list" class="pm-admin-manager-list"></div>
-                    </div>
-
-                    <div class="pm-admin-column">
-                        <h3><?= h(LOC('pm_admin.assigned_list_label')) ?></h3>
-                        <form method="post" id="pm-admin-form" class="pm-admin-form">
-                            <input type="hidden" name="action" value="pm_admin_save">
-                            <input type="hidden" name="selected_manager" id="pm-admin-selected-manager" value="">
-                            <div id="pm-admin-children-list" class="pm-admin-children-list"></div>
-                            <button type="submit" class="pm-admin-save"><?= h(LOC('pm_admin.save')) ?></button>
-                        </form>
-                        <form method="post" id="pm-admin-impersonate-form" class="pm-admin-form">
-                            <input type="hidden" name="action" value="pm_admin_impersonate">
-                            <input type="hidden" name="impersonate_manager" id="pm-admin-impersonate-manager" value="">
-                            <button type="submit" id="pm-admin-impersonate-submit" class="pm-admin-save"><?= h(LOC('pm_admin.impersonate')) ?></button>
-                        </form>
-                        <form method="post" class="pm-admin-form">
-                            <input type="hidden" name="action" value="pm_admin_impersonate_clear">
-                            <button type="submit" class="pm-admin-save"><?= h(LOC('pm_admin.stop_impersonate')) ?></button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
     <script>
         (function ()
         {
@@ -1160,14 +1278,6 @@
             const costCenterCodeFilterEl = document.getElementById('cost-center-code-filter');
             const createdByFilterEl = document.getElementById('created-by-filter');
             const searchInputEl = document.getElementById('table-search');
-            const pmAdminOpenEl = document.getElementById('pm-admin-open');
-            const pmAdminModalEl = document.getElementById('pm-admin-modal');
-            const pmAdminCloseEl = document.getElementById('pm-admin-close');
-            const pmAdminManagerListEl = document.getElementById('pm-admin-manager-list');
-            const pmAdminChildrenListEl = document.getElementById('pm-admin-children-list');
-            const pmAdminSelectedManagerEl = document.getElementById('pm-admin-selected-manager');
-            const pmAdminImpersonateManagerEl = document.getElementById('pm-admin-impersonate-manager');
-            const pmAdminImpersonateSubmitEl = document.getElementById('pm-admin-impersonate-submit');
             const seenOverdueRowKeys = new Set();
             const seenUpcomingRowKeys = new Set();
             const DYNAMIC_COLS = ['accountmanager', 'customer', 'document_no', 'work_order', 'company'];
@@ -1201,11 +1311,7 @@
                 ownProjectManagerLabel: <?= json_encode($projectManagerOwnLabel, JSON_UNESCAPED_UNICODE) ?>,
                 allowedProjectManagers: <?= json_encode($allowedProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
                 allProjectManagers: <?= json_encode($allProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
-                pmDisplayMap: <?= json_encode($projectManagerDisplayLookup, JSON_UNESCAPED_UNICODE) ?>,
-                pmAssignments: <?= json_encode($projectManagerAssignmentMap, JSON_UNESCAPED_UNICODE) ?>,
-                pmInvalidMap: <?= json_encode($projectManagerInvalidMap, JSON_UNESCAPED_UNICODE) ?>,
-                pmAdminTitleNone: <?= json_encode(LOC('pm_admin.none_available'), JSON_UNESCAPED_UNICODE) ?>,
-                pmAdminSelectManager: <?= json_encode(LOC('pm_admin.select_manager_first'), JSON_UNESCAPED_UNICODE) ?>
+                pmDisplayMap: <?= json_encode($projectManagerDisplayLookup, JSON_UNESCAPED_UNICODE) ?>
             };
 
             const moneyFormatter = new Intl.NumberFormat(document.documentElement.lang || 'nl', {
@@ -1856,180 +1962,8 @@
                 if (event.key === 'Escape')
                 {
                     closeInspectorModal();
-                    if (pmAdminModalEl && pmAdminModalEl.classList.contains('open'))
-                    {
-                        pmAdminModalEl.classList.remove('open');
-                        pmAdminModalEl.setAttribute('aria-hidden', 'true');
-                    }
                 }
             });
-
-            function getAssignedChildrenForManager (managerName)
-            {
-                const assignments = config.pmAssignments || {};
-                const managerKey = normalizeText(managerName);
-                const keys = Object.keys(assignments);
-                for (let i = 0; i < keys.length; i++)
-                {
-                    const key = String(keys[i]);
-                    if (normalizeText(key) === managerKey)
-                    {
-                        return Array.isArray(assignments[key]) ? assignments[key].map(String) : [];
-                    }
-                }
-
-                return [];
-            }
-
-            function getInvalidChildrenForManager (managerName)
-            {
-                const managerKey = normalizeText(managerName);
-                const map = config.pmInvalidMap || {};
-                const values = map[managerKey] || [];
-                return new Set(Array.isArray(values) ? values.map(normalizeText) : []);
-            }
-
-            function renderPmAdminChildrenList (managerName)
-            {
-                if (!pmAdminChildrenListEl || !pmAdminSelectedManagerEl)
-                {
-                    return;
-                }
-
-                const selectedManager = String(managerName || '');
-                pmAdminSelectedManagerEl.value = selectedManager;
-                if (pmAdminImpersonateManagerEl)
-                {
-                    pmAdminImpersonateManagerEl.value = selectedManager;
-                }
-                if (pmAdminImpersonateSubmitEl)
-                {
-                    pmAdminImpersonateSubmitEl.disabled = selectedManager === '';
-                }
-
-                if (selectedManager === '')
-                {
-                    pmAdminChildrenListEl.innerHTML = '<p>' + escapeHtml(config.pmAdminSelectManager) + '</p>';
-                    return;
-                }
-
-                const assignedSet = new Set(getAssignedChildrenForManager(selectedManager).map(normalizeText));
-                const invalidSet = getInvalidChildrenForManager(selectedManager);
-
-                const allManagers = Array.isArray(config.allProjectManagers) ? config.allProjectManagers : [];
-                const options = allManagers.filter(function (managerCode)
-                {
-                    return normalizeText(managerCode) !== normalizeText(selectedManager);
-                });
-
-                if (options.length === 0)
-                {
-                    pmAdminChildrenListEl.innerHTML = '<p>' + escapeHtml(config.pmAdminTitleNone) + '</p>';
-                    return;
-                }
-
-                let html = '';
-                options.forEach(function (managerCode)
-                {
-                    const normalized = normalizeText(managerCode);
-                    const checked = assignedSet.has(normalized);
-                    const disabled = invalidSet.has(normalized);
-                    const label = getProjectManagerLabel(managerCode);
-
-                    html += '<label class="pm-admin-child-option' + (disabled ? ' disabled' : '') + '">';
-                    html += '<input type="checkbox" name="assigned_project_managers[]" value="' + escapeHtml(managerCode) + '"'
-                        + (checked ? ' checked' : '')
-                        + (disabled ? ' disabled' : '')
-                        + '>';
-                    html += '<span>' + escapeHtml(label) + '</span>';
-                    html += '</label>';
-                });
-
-                pmAdminChildrenListEl.innerHTML = html;
-            }
-
-            function renderPmAdminManagerList ()
-            {
-                if (!pmAdminManagerListEl)
-                {
-                    return;
-                }
-
-                const managers = Array.isArray(config.allProjectManagers) ? config.allProjectManagers : [];
-                if (managers.length === 0)
-                {
-                    pmAdminManagerListEl.innerHTML = '<p>' + escapeHtml(config.pmAdminTitleNone) + '</p>';
-                    renderPmAdminChildrenList('');
-                    return;
-                }
-
-                let activeManager = managers[0];
-                if (pmAdminSelectedManagerEl && String(pmAdminSelectedManagerEl.value || '') !== '')
-                {
-                    activeManager = String(pmAdminSelectedManagerEl.value);
-                }
-
-                let html = '';
-                managers.forEach(function (managerCode)
-                {
-                    const isActive = normalizeText(managerCode) === normalizeText(activeManager);
-                    html += '<button type="button" class="pm-admin-manager-item' + (isActive ? ' active' : '') + '" data-manager="' + escapeHtml(managerCode) + '">' + escapeHtml(getProjectManagerLabel(managerCode)) + '</button>';
-                });
-
-                pmAdminManagerListEl.innerHTML = html;
-                renderPmAdminChildrenList(activeManager);
-            }
-
-            function bindPmAdminModal ()
-            {
-                if (!pmAdminOpenEl || !pmAdminModalEl || !pmAdminCloseEl || !pmAdminManagerListEl)
-                {
-                    return;
-                }
-
-                pmAdminOpenEl.addEventListener('click', function ()
-                {
-                    renderPmAdminManagerList();
-                    pmAdminModalEl.classList.add('open');
-                    pmAdminModalEl.setAttribute('aria-hidden', 'false');
-                });
-
-                pmAdminCloseEl.addEventListener('click', function ()
-                {
-                    pmAdminModalEl.classList.remove('open');
-                    pmAdminModalEl.setAttribute('aria-hidden', 'true');
-                });
-
-                pmAdminModalEl.addEventListener('click', function (event)
-                {
-                    if (event.target === pmAdminModalEl)
-                    {
-                        pmAdminModalEl.classList.remove('open');
-                        pmAdminModalEl.setAttribute('aria-hidden', 'true');
-                    }
-                });
-
-                pmAdminManagerListEl.addEventListener('click', function (event)
-                {
-                    const button = event.target.closest('.pm-admin-manager-item');
-                    if (!button || !pmAdminManagerListEl.contains(button))
-                    {
-                        return;
-                    }
-
-                    const manager = String(button.getAttribute('data-manager') || '');
-                    if (manager === '')
-                    {
-                        return;
-                    }
-
-                    pmAdminManagerListEl.querySelectorAll('.pm-admin-manager-item').forEach(function (item)
-                    {
-                        item.classList.toggle('active', item === button);
-                    });
-                    renderPmAdminChildrenList(manager);
-                });
-            }
 
             function rowMatchesSearch (row)
             {
@@ -2331,7 +2265,6 @@
             }
 
             bindStatusFilterButtons();
-            bindPmAdminModal();
             bindRowInspector(overdueRowsEl);
             bindRowInspector(upcomingRowsEl);
 
@@ -2380,6 +2313,484 @@
             runStream();
         })();
     </script>
+
+    <?php if (!empty($isAdminUser)): ?>
+        <script>
+            (function ()
+            {
+                const gearEl = document.getElementById('dept-access-gear');
+                const panelEl = document.getElementById('dept-access-panel');
+                const panelCloseEl = document.getElementById('dept-access-panel-close');
+                const emailInputEl = document.getElementById('dept-access-email');
+                const addButtonEl = document.getElementById('dept-access-add');
+                const suggestionsEl = document.getElementById('dept-access-suggestions');
+                const userListEl = document.getElementById('dept-access-user-list');
+                const modalEl = document.getElementById('dept-access-modal');
+                const modalTitleEl = document.getElementById('dept-access-modal-title');
+                const checksEl = document.getElementById('dept-access-checks');
+                const modalSaveEl = document.getElementById('dept-access-modal-save');
+                const modalCancelEl = document.getElementById('dept-access-modal-cancel');
+
+                if (!gearEl || !panelEl || !emailInputEl || !userListEl || !modalEl)
+                {
+                    return;
+                }
+
+                const labels = {
+                    emptyUsers: <?= json_encode(LOC('dept_access.empty_users'), JSON_UNESCAPED_UNICODE) ?>,
+                    modalTitle: <?= json_encode(LOC('dept_access.modal_title'), JSON_UNESCAPED_UNICODE) ?>,
+                    saveFailed: <?= json_encode(LOC('dept_access.save_failed'), JSON_UNESCAPED_UNICODE) ?>,
+                    loadFailed: <?= json_encode(LOC('dept_access.load_failed'), JSON_UNESCAPED_UNICODE) ?>,
+                    noDepartments: <?= json_encode(LOC('dept_access.no_departments'), JSON_UNESCAPED_UNICODE) ?>
+                };
+
+                const state = {
+                    directoryUsers: [],
+                    departments: [],
+                    users: [],
+                    groups: [],
+                    activeEmail: '',
+                    loaded: false,
+                    suggestionIndex: -1
+                };
+
+                function escapeHtml (value)
+                {
+                    return String(value)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+
+                function normalizeEmail (value)
+                {
+                    return String(value || '').trim().toLowerCase();
+                }
+
+                function normalizeDepartments (values)
+                {
+                    const unique = {};
+                    (Array.isArray(values) ? values : []).forEach(function (value)
+                    {
+                        let code = String(value || '').trim();
+                        if (code === '')
+                        {
+                            return;
+                        }
+                        if (/^\d+$/.test(code))
+                        {
+                            code = String(parseInt(code, 10));
+                        }
+                        unique[code] = code;
+                    });
+
+                    return Object.keys(unique).sort(function (left, right)
+                    {
+                        if (/^\d+$/.test(left) && /^\d+$/.test(right))
+                        {
+                            return parseInt(left, 10) - parseInt(right, 10);
+                        }
+                        return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+                }
+
+                function departmentSetKey (values)
+                {
+                    return normalizeDepartments(values).join('|');
+                }
+
+                function buildGroups (users)
+                {
+                    const groupsMap = {};
+                    (Array.isArray(users) ? users : []).forEach(function (user)
+                    {
+                        const email = normalizeEmail(user.email);
+                        const departments = normalizeDepartments(user.departments || []);
+                        if (email === '' || departments.length === 0)
+                        {
+                            return;
+                        }
+
+                        const key = departmentSetKey(departments);
+                        if (!groupsMap[key])
+                        {
+                            groupsMap[key] = {
+                                key: key,
+                                departments: departments,
+                                users: []
+                            };
+                        }
+                        groupsMap[key].users.push({
+                            email: email,
+                            departments: departments
+                        });
+                    });
+
+                    const groups = Object.keys(groupsMap).map(function (key)
+                    {
+                        const group = groupsMap[key];
+                        group.users.sort(function (left, right)
+                        {
+                            return left.email.localeCompare(right.email);
+                        });
+                        return group;
+                    });
+
+                    groups.sort(function (left, right)
+                    {
+                        if (left.departments.length !== right.departments.length)
+                        {
+                            return right.departments.length - left.departments.length;
+                        }
+
+                        const leftSum = left.departments.reduce(function (sum, code)
+                        {
+                            return sum + (/^\d+$/.test(code) ? parseInt(code, 10) : 0);
+                        }, 0);
+                        const rightSum = right.departments.reduce(function (sum, code)
+                        {
+                            return sum + (/^\d+$/.test(code) ? parseInt(code, 10) : 0);
+                        }, 0);
+
+                        if (leftSum !== rightSum)
+                        {
+                            return rightSum - leftSum;
+                        }
+
+                        return left.key.localeCompare(right.key);
+                    });
+
+                    return groups;
+                }
+
+                function setPanelOpen (open)
+                {
+                    panelEl.classList.toggle('open', open);
+                    panelEl.setAttribute('aria-hidden', open ? 'false' : 'true');
+                    if (open && !state.loaded)
+                    {
+                        loadAccessData();
+                    }
+                }
+
+                function setModalOpen (open)
+                {
+                    modalEl.classList.toggle('open', open);
+                    modalEl.setAttribute('aria-hidden', open ? 'false' : 'true');
+                }
+
+                function renderUserList ()
+                {
+                    const groups = Array.isArray(state.groups) && state.groups.length
+                        ? state.groups
+                        : buildGroups(state.users);
+
+                    if (!groups.length)
+                    {
+                        userListEl.innerHTML = '<div class="alert alert-info">' + escapeHtml(labels.emptyUsers) + '</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    groups.forEach(function (group)
+                    {
+                        html += '<div class="dept-access-group">';
+                        html += '<div class="dept-access-group-separator">' + escapeHtml((group.departments || []).join(', ')) + '</div>';
+                        (group.users || []).forEach(function (user)
+                        {
+                            html += '<button type="button" class="dept-access-user-btn" data-email="' + escapeHtml(user.email) + '">' + escapeHtml(user.email) + '</button>';
+                        });
+                        html += '</div>';
+                    });
+                    userListEl.innerHTML = html;
+                }
+
+                function renderSuggestions (query)
+                {
+                    const needle = String(query || '').trim().toLowerCase();
+                    if (needle.length < 2)
+                    {
+                        suggestionsEl.classList.remove('open');
+                        suggestionsEl.innerHTML = '';
+                        state.suggestionIndex = -1;
+                        return;
+                    }
+
+                    const matches = state.directoryUsers.filter(function (user)
+                    {
+                        const email = normalizeEmail(user.Email || user.email || '');
+                        const name = String(user.Naam || user.name || '').toLowerCase();
+                        return email.indexOf(needle) !== -1 || name.indexOf(needle) !== -1;
+                    }).slice(0, 8);
+
+                    if (!matches.length)
+                    {
+                        suggestionsEl.classList.remove('open');
+                        suggestionsEl.innerHTML = '';
+                        state.suggestionIndex = -1;
+                        return;
+                    }
+
+                    suggestionsEl.innerHTML = matches.map(function (user, index)
+                    {
+                        const email = normalizeEmail(user.Email || user.email || '');
+                        const name = String(user.Naam || user.name || '');
+                        return '<button type="button" class="dept-access-suggestion' + (index === 0 ? ' active' : '') + '" data-email="' + escapeHtml(email) + '" data-index="' + index + '">'
+                            + escapeHtml(name || email)
+                            + (name ? '<small>' + escapeHtml(email) + '</small>' : '')
+                            + '</button>';
+                    }).join('');
+                    suggestionsEl.classList.add('open');
+                    state.suggestionIndex = 0;
+                }
+
+                function openUserModal (email)
+                {
+                    const normalized = normalizeEmail(email);
+                    if (normalized === '' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized))
+                    {
+                        return;
+                    }
+
+                    state.activeEmail = normalized;
+                    modalTitleEl.textContent = labels.modalTitle.replace('%s', normalized);
+
+                    const existing = state.users.find(function (user)
+                    {
+                        return normalizeEmail(user.email) === normalized;
+                    });
+                    const selected = {};
+                    normalizeDepartments(existing ? existing.departments : []).forEach(function (code)
+                    {
+                        selected[code] = true;
+                    });
+
+                    if (!state.departments.length)
+                    {
+                        checksEl.innerHTML = '<div class="alert alert-info">' + escapeHtml(labels.noDepartments) + '</div>';
+                    } else
+                    {
+                        checksEl.innerHTML = state.departments.map(function (department)
+                        {
+                            const code = String(department.code || '');
+                            const label = String(department.label || code);
+                            const checked = selected[code] ? ' checked' : '';
+                            return '<label class="dept-access-check-line">'
+                                + '<input type="checkbox" value="' + escapeHtml(code) + '"' + checked + '>'
+                                + '<span>' + escapeHtml(label) + '</span>'
+                                + '</label>';
+                        }).join('');
+                    }
+
+                    setModalOpen(true);
+                }
+
+                async function loadAccessData ()
+                {
+                    try
+                    {
+                        const company = <?= json_encode($selectedCompany ?? '', JSON_UNESCAPED_UNICODE) ?>;
+                        const params = new URLSearchParams();
+                        params.set('action', 'list');
+                        if (company)
+                        {
+                            params.set('company', company);
+                        }
+
+                        const [accessResponse, usersResponse] = await Promise.all([
+                            fetch('department_access_api.php?' + params.toString(), { credentials: 'same-origin' }),
+                            fetch('getusers.php', { credentials: 'same-origin' })
+                        ]);
+
+                        const accessPayload = await accessResponse.json();
+                        const usersPayload = await usersResponse.json();
+
+                        if (!accessPayload || accessPayload.ok !== true)
+                        {
+                            throw new Error(labels.loadFailed);
+                        }
+
+                        state.departments = Array.isArray(accessPayload.departments) ? accessPayload.departments : [];
+                        state.users = Array.isArray(accessPayload.users) ? accessPayload.users : [];
+                        state.groups = Array.isArray(accessPayload.groups) ? accessPayload.groups : buildGroups(state.users);
+                        state.directoryUsers = Array.isArray(usersPayload) ? usersPayload : [];
+                        state.loaded = true;
+                        renderUserList();
+                    } catch (error)
+                    {
+                        userListEl.innerHTML = '<div class="alert alert-danger">' + escapeHtml(labels.loadFailed) + '</div>';
+                    }
+                }
+
+                async function saveUserDepartments (email, departments)
+                {
+                    const response = await fetch('department_access_api.php?action=save', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: email,
+                            departments: departments
+                        })
+                    });
+                    const payload = await response.json();
+                    if (!payload || payload.ok !== true)
+                    {
+                        throw new Error((payload && payload.error) ? payload.error : labels.saveFailed);
+                    }
+
+                    state.users = Array.isArray(payload.users) ? payload.users : state.users;
+                    state.groups = Array.isArray(payload.groups) ? payload.groups : buildGroups(state.users);
+                    renderUserList();
+                    return payload;
+                }
+
+                gearEl.addEventListener('click', function ()
+                {
+                    setPanelOpen(!panelEl.classList.contains('open'));
+                });
+
+                if (panelCloseEl)
+                {
+                    panelCloseEl.addEventListener('click', function ()
+                    {
+                        setPanelOpen(false);
+                    });
+                }
+
+                emailInputEl.addEventListener('input', function ()
+                {
+                    renderSuggestions(emailInputEl.value);
+                });
+
+                emailInputEl.addEventListener('keydown', function (event)
+                {
+                    const buttons = Array.from(suggestionsEl.querySelectorAll('.dept-access-suggestion'));
+                    if (!buttons.length || !suggestionsEl.classList.contains('open'))
+                    {
+                        if (event.key === 'Enter')
+                        {
+                            event.preventDefault();
+                            openUserModal(emailInputEl.value);
+                        }
+                        return;
+                    }
+
+                    if (event.key === 'ArrowDown')
+                    {
+                        event.preventDefault();
+                        state.suggestionIndex = Math.min(buttons.length - 1, state.suggestionIndex + 1);
+                    } else if (event.key === 'ArrowUp')
+                    {
+                        event.preventDefault();
+                        state.suggestionIndex = Math.max(0, state.suggestionIndex - 1);
+                    } else if (event.key === 'Enter')
+                    {
+                        event.preventDefault();
+                        const active = buttons[state.suggestionIndex] || buttons[0];
+                        if (active)
+                        {
+                            emailInputEl.value = active.getAttribute('data-email') || '';
+                            suggestionsEl.classList.remove('open');
+                            openUserModal(emailInputEl.value);
+                        }
+                        return;
+                    } else
+                    {
+                        return;
+                    }
+
+                    buttons.forEach(function (button, index)
+                    {
+                        button.classList.toggle('active', index === state.suggestionIndex);
+                    });
+                });
+
+                suggestionsEl.addEventListener('click', function (event)
+                {
+                    const button = event.target.closest('.dept-access-suggestion');
+                    if (!button)
+                    {
+                        return;
+                    }
+                    emailInputEl.value = button.getAttribute('data-email') || '';
+                    suggestionsEl.classList.remove('open');
+                    openUserModal(emailInputEl.value);
+                });
+
+                if (addButtonEl)
+                {
+                    addButtonEl.addEventListener('click', function ()
+                    {
+                        openUserModal(emailInputEl.value);
+                    });
+                }
+
+                userListEl.addEventListener('click', function (event)
+                {
+                    const button = event.target.closest('.dept-access-user-btn');
+                    if (!button)
+                    {
+                        return;
+                    }
+                    openUserModal(button.getAttribute('data-email') || '');
+                });
+
+                if (modalCancelEl)
+                {
+                    modalCancelEl.addEventListener('click', function ()
+                    {
+                        setModalOpen(false);
+                    });
+                }
+
+                modalEl.addEventListener('click', function (event)
+                {
+                    if (event.target === modalEl)
+                    {
+                        setModalOpen(false);
+                    }
+                });
+
+                if (modalSaveEl)
+                {
+                    modalSaveEl.addEventListener('click', async function ()
+                    {
+                        const selected = Array.from(checksEl.querySelectorAll('input[type="checkbox"]:checked')).map(function (input)
+                        {
+                            return input.value;
+                        });
+
+                        try
+                        {
+                            await saveUserDepartments(state.activeEmail, selected);
+                            setModalOpen(false);
+                            emailInputEl.value = '';
+                            suggestionsEl.classList.remove('open');
+                        } catch (error)
+                        {
+                            window.alert(error && error.message ? error.message : labels.saveFailed);
+                        }
+                    });
+                }
+
+                document.addEventListener('click', function (event)
+                {
+                    if (!panelEl.classList.contains('open'))
+                    {
+                        return;
+                    }
+                    if (panelEl.contains(event.target) || gearEl.contains(event.target) || modalEl.contains(event.target))
+                    {
+                        return;
+                    }
+                    setPanelOpen(false);
+                });
+            })();
+        </script>
+    <?php endif; ?>
 
 </body>
 

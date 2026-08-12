@@ -70,47 +70,6 @@ class ProjectManagerScopeTest extends TestCase
         $this->assertSame('PM Alpha', $resolved['project_manager_name']);
     }
 
-    public function testAssignChildrenRejectsCircularDependency(): void
-    {
-        $assignments = [
-            'Manager A' => ['Manager B'],
-            'Manager B' => ['Manager C'],
-        ];
-
-        $result = talosPmAssignChildren($assignments, 'Manager C', ['Manager A']);
-
-        $this->assertFalse($result['ok']);
-        $this->assertSame('pm_admin.error.circular_dependency', $result['error_key']);
-    }
-
-    public function testGetAllowedProjectManagersReturnsSelfAndDescendants(): void
-    {
-        $assignments = [
-            'Manager A' => ['Manager B'],
-            'Manager B' => ['Manager C'],
-            'Manager D' => ['Manager E'],
-        ];
-
-        $allowed = talosPmGetAllowedProjectManagers($assignments, 'Manager A');
-
-        $this->assertSame(['Manager A', 'Manager B', 'Manager C'], $allowed);
-    }
-
-    public function testFilterRowsByAllowedManagersIsCaseInsensitive(): void
-    {
-        $rows = [
-            ['_project_manager' => 'Manager A', 'Line_No' => 1],
-            ['_project_manager' => 'manager b', 'Line_No' => 2],
-            ['_project_manager' => 'Manager C', 'Line_No' => 3],
-        ];
-
-        $filtered = talosPmFilterRowsByAllowedManagers($rows, ['MANAGER A', 'Manager B']);
-
-        $this->assertCount(2, $filtered);
-        $this->assertSame(1, (int) $filtered[0]['Line_No']);
-        $this->assertSame(2, (int) $filtered[1]['Line_No']);
-    }
-
     public function testMapLegacyManagerCodeToSalespersonCodeUsesEmailLocalPart(): void
     {
         $rows = [
