@@ -18,6 +18,11 @@ function is_trusted_requester(): bool
     return false;
 }
 
+// login/lib.php expects an active session (with cookie user) before it runs.
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
 if (!is_trusted_requester()) {
     require __DIR__ . "/../login/lib.php";
 
