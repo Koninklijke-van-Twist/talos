@@ -1311,7 +1311,9 @@
                 ownProjectManagerLabel: <?= json_encode($projectManagerOwnLabel, JSON_UNESCAPED_UNICODE) ?>,
                 allowedProjectManagers: <?= json_encode($allowedProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
                 allProjectManagers: <?= json_encode($allProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
-                pmDisplayMap: <?= json_encode($projectManagerDisplayLookup, JSON_UNESCAPED_UNICODE) ?>
+                pmDisplayMap: <?= json_encode($projectManagerDisplayLookup, JSON_UNESCAPED_UNICODE) ?>,
+                liveUpdateEndpoint: 'billing_live_update.php',
+                snapshotVersion: <?= (int) ($billingSnapshotVersion ?? 0) ?>
             };
 
             const moneyFormatter = new Intl.NumberFormat(document.documentElement.lang || 'nl', {
@@ -2264,6 +2266,256 @@
                 });
             }
 
+            function ensureSectionTable (bucket)
+            {
+                const isOverdue = bucket === 'overdue';
+                let tbody = isOverdue ? overdueRowsEl : upcomingRowsEl;
+                if (tbody)
+                {
+                    return tbody;
+                }
+
+                // Table may be absent when the initial page had zero rows for that bucket.
+                return null;
+            }
+
+            function applySilentLivePatches (payload)
+            {
+                const upserted = Array.isArray(payload.upserted) ? payload.upserted : [];
+                const removed = Array.isArray(payload.removed) ? payload.removed : [];
+                let changed = 0;
+
+                removed.forEach(function (rowKey)
+                {
+                    const key = String(rowKey || '');
+                    if (key === '')
+                    {
+                        return;
+                    }
+
+                    [overdueRowsEl, upcomingRowsEl].forEach(function (tbody)
+                    {
+                        if (!tbody)
+                        {
+                            return;
+                        }
+                        const existing = tbody.querySelector('tr[data-row-key="' + CSS.escape(key) + '"]');
+                        if (existing)
+                        {
+                            existing.remove();
+                            seenOverdueRowKeys.delete(key);
+                            seenUpcomingRowKeys.delete(key);
+                            changed++;
+                        }
+                    });
+                });
+
+                upserted.forEach(function (item)
+                {
+                    if (!item || typeof item !== 'object')
+                    {
+                        return;
+                    }
+
+                    const key = String(item.key || '');
+                    const html = String(item.html || '');
+                    const bucket = String(item.bucket || 'upcoming');
+                    if (key === '' || html === '')
+                    {
+                        return;
+                    }
+
+                    const tbody = ensureSectionTable(bucket);
+                    if (!tbody)
+                    {
+                        console.debug('[talos-live] skip upsert; missing tbody for', bucket, key);
+                        return;
+                    }
+
+                    const loadingRow = tbody.querySelector('.stream-loading-row');
+                    let existing = null;
+                    [overdueRowsEl, upcomingRowsEl].forEach(function (candidate)
+                    {
+                        if (!candidate || existing)
+                        {
+                            return;
+                        }
+                        existing = candidate.querySelector('tr[data-row-key="' + CSS.escape(key) + '"]');
+                        if (existing && candidate !== tbody)
+                        {
+                            existing.remove();
+                            existing = null;
+                        }
+                    });
+
+                    const template = document.createElement('tbody');
+                    template.innerHTML = html.trim();
+                    const newRow = template.querySelector('tr');
+                    if (!newRow)
+                    {
+                        return;
+                    }
+
+                    if (existing)
+                    {
+                        existing.replaceWith(newRow);
+                    } else if (loadingRow)
+                    {
+                        tbody.insertBefore(newRow, loadingRow);
+                    } else
+                    {
+                        tbody.appendChild(newRow);
+                    }
+
+                    if (bucket === 'overdue')
+                    {
+                        seenOverdueRowKeys.add(key);
+                        seenUpcomingRowKeys.delete(key);
+                    } else
+                    {
+                        seenUpcomingRowKeys.add(key);
+                        seenOverdueRowKeys.delete(key);
+                    }
+                    changed++;
+                });
+
+                if (changed > 0)
+                {
+                    sortOverdueRowsByDaysDesc();
+                    syncStatusFiltersFromRows();
+                    syncLiveFiltersFromRows();
+                    updateRowVisibilityBasedOnStatus();
+                    updateColumnVisibility();
+                    console.debug('[talos-live] applied patches', {
+                        upserted: upserted.length,
+                        removed: removed.length,
+                        changed: changed,
+                        version: payload.version
+                    });
+                }
+            }
+
+            function startSilentLiveUpdates ()
+            {
+                if (config.hasError || config.requiresCompanySelection || !config.company)
+                {
+                    return;
+                }
+
+                let snapshotVersion = Number(config.snapshotVersion || 0);
+                let timerId = null;
+                let inFlight = false;
+                let delayMs = 75000;
+
+                function scheduleNext (ms)
+                {
+                    if (timerId)
+                    {
+                        clearTimeout(timerId);
+                    }
+                    timerId = setTimeout(runPoll, ms);
+                }
+
+                async function runPoll ()
+                {
+                    if (document.visibilityState === 'hidden')
+                    {
+                        scheduleNext(delayMs);
+                        return;
+                    }
+                    if (inFlight)
+                    {
+                        scheduleNext(Math.max(15000, Math.floor(delayMs / 2)));
+                        return;
+                    }
+
+                    inFlight = true;
+                    try
+                    {
+                        const params = new URLSearchParams();
+                        params.set('company', config.company);
+                        params.set('since_version', String(snapshotVersion));
+                        if (config.debugOdata)
+                        {
+                            params.set('debug_odata', '1');
+                        }
+                        if (!config.hideSapImports)
+                        {
+                            params.set('hide_sap_imports', '0');
+                        }
+
+                        console.debug('[talos-live] poll', {
+                            company: config.company,
+                            since_version: snapshotVersion
+                        });
+
+                        const response = await fetch(config.liveUpdateEndpoint + '?' + params.toString(), {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin'
+                        });
+                        if (!response.ok)
+                        {
+                            throw new Error('HTTP ' + response.status);
+                        }
+
+                        const payload = await response.json();
+                        console.debug('[talos-live] response', {
+                            pending: !!payload.pending,
+                            coalesced: !!payload.coalesced,
+                            fetched: !!payload.fetched,
+                            strategy: payload.strategy || null,
+                            version: payload.version,
+                            upserted: Array.isArray(payload.upserted) ? payload.upserted.length : 0,
+                            removed: Array.isArray(payload.removed) ? payload.removed.length : 0
+                        });
+
+                        if (payload && payload.ok)
+                        {
+                            if (typeof payload.version === 'number' && payload.version > snapshotVersion)
+                            {
+                                applySilentLivePatches(payload);
+                                snapshotVersion = payload.version;
+                                config.snapshotVersion = snapshotVersion;
+                            }
+
+                            delayMs = payload.pending ? 20000 : 75000;
+                        } else
+                        {
+                            delayMs = Math.min(180000, delayMs + 15000);
+                        }
+                    } catch (error)
+                    {
+                        console.debug('[talos-live] poll failed', error);
+                        delayMs = Math.min(180000, delayMs + 15000);
+                    } finally
+                    {
+                        inFlight = false;
+                        scheduleNext(delayMs);
+                    }
+                }
+
+                document.addEventListener('visibilitychange', function ()
+                {
+                    if (document.visibilityState === 'visible')
+                    {
+                        scheduleNext(5000);
+                    }
+                });
+
+                const start = function ()
+                {
+                    scheduleNext(45000);
+                };
+
+                if (typeof window.requestIdleCallback === 'function')
+                {
+                    window.requestIdleCallback(start, { timeout: 60000 });
+                } else
+                {
+                    setTimeout(start, 45000);
+                }
+            }
+
             bindStatusFilterButtons();
             bindRowInspector(overdueRowsEl);
             bindRowInspector(upcomingRowsEl);
@@ -2311,6 +2563,7 @@
             }
 
             runStream();
+            startSilentLiveUpdates();
         })();
     </script>
 

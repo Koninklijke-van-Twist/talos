@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Nightly cache warmer + billing snapshot full replace.
+ * Hourly incremental billing snapshot refresh.
  *
- * Called via GET (with API key) around 02:00. Rebuilds per-company billing
- * snapshots and warms SalesPersonCard so daytime loads are cache/snapshot hits.
+ * Uses SystemModifiedAt deltas when available; otherwise a coalesced full-window
+ * refresh. Concurrent callers for the same company share one BC pull.
  */
 
 declare(strict_types=1);
@@ -45,15 +45,14 @@ $primaryAuth = function_exists('getAuthForEnvironment') && $primaryEnvironment !
 $result = [
     'ok' => true,
     'today' => $today,
-    'cache_ttl_seconds' => PROJECT_BILLING_CACHE_TTL_SECONDS,
     'environments' => $activeEnvironments,
     'companies' => [],
     'totals' => [
         'companies' => 0,
-        'overdue_rows' => 0,
-        'future_rows' => 0,
-        'salesperson_rows' => 0,
-        'snapshot_rows' => 0,
+        'fetched' => 0,
+        'coalesced' => 0,
+        'upserted' => 0,
+        'removed' => 0,
         'errors' => 0,
     ],
     'errors' => [],
@@ -89,44 +88,42 @@ try {
             'company' => $company,
             'environment' => (string) ($companyEnvironmentMap[$company] ?? ''),
             'ok' => true,
-            'overdue_rows' => 0,
-            'future_rows' => 0,
-            'salesperson_rows' => 0,
-            'snapshot_version' => 0,
-            'snapshot_rows' => 0,
+            'pending' => false,
+            'coalesced' => false,
+            'fetched' => false,
             'strategy' => null,
+            'version' => 0,
+            'upserted' => 0,
+            'removed' => 0,
             'error' => null,
         ];
 
         try {
-            $refresh = talosBillingCoalescedRefresh($company, 'nightly', $refreshContext);
-            if (empty($refresh['ok'])) {
-                throw new RuntimeException((string) ($refresh['error'] ?? 'Snapshot refresh failed'));
+            $refresh = talosBillingCoalescedRefresh($company, 'hourly', $refreshContext);
+            $companyResult['ok'] = !empty($refresh['ok']);
+            $companyResult['pending'] = !empty($refresh['pending']);
+            $companyResult['coalesced'] = !empty($refresh['coalesced']);
+            $companyResult['fetched'] = !empty($refresh['fetched']);
+            $companyResult['strategy'] = $refresh['strategy'] ?? null;
+            $companyResult['version'] = (int) ($refresh['version'] ?? 0);
+            $companyResult['upserted'] = (int) ($refresh['upserted'] ?? 0);
+            $companyResult['removed'] = (int) ($refresh['removed'] ?? 0);
+            $companyResult['error'] = $refresh['error'] ?? null;
+
+            if (!empty($refresh['fetched'])) {
+                $result['totals']['fetched']++;
             }
+            if (!empty($refresh['coalesced'])) {
+                $result['totals']['coalesced']++;
+            }
+            $result['totals']['upserted'] += $companyResult['upserted'];
+            $result['totals']['removed'] += $companyResult['removed'];
 
-            $snapshot = talosBillingLoadSnapshot($company);
-            $buckets = talosBillingSplitRowsIntoBuckets((array) ($snapshot['rows'] ?? []), $today);
-            $overdueCount = count($buckets['overdue']);
-            $futureCount = count($buckets['upcoming_month']);
-            $companyResult['overdue_rows'] = $overdueCount;
-            $companyResult['future_rows'] = $futureCount;
-            $companyResult['snapshot_version'] = (int) ($refresh['version'] ?? 0);
-            $companyResult['snapshot_rows'] = (int) ($refresh['row_count'] ?? 0);
-            $companyResult['strategy'] = (string) ($refresh['strategy'] ?? 'full');
-            $result['totals']['overdue_rows'] += $overdueCount;
-            $result['totals']['future_rows'] += $futureCount;
-            $result['totals']['snapshot_rows'] += $companyResult['snapshot_rows'];
-
-            $scopeMap = [$company => (string) ($companyEnvironmentMap[$company] ?? '')];
-            $salespersonRows = talosPmFetchUserSetupRows(
-                (string) $baseUrl,
-                $scopeMap,
-                $primaryAuth,
-                ''
-            );
-            $salespersonCount = count($salespersonRows);
-            $companyResult['salesperson_rows'] = $salespersonCount;
-            $result['totals']['salesperson_rows'] += $salespersonCount;
+            if (empty($refresh['ok'])) {
+                $result['ok'] = false;
+                $result['totals']['errors']++;
+                $result['errors'][] = $company . ': ' . (string) ($refresh['error'] ?? 'refresh failed');
+            }
         } catch (Throwable $e) {
             $companyResult['ok'] = false;
             $companyResult['error'] = $e->getMessage();
