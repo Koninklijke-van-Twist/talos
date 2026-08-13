@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Nightly cache warmer + billing snapshot full replace.
+ * Nightly cache warmer.
  *
- * Called via GET (with API key) around 02:00. Rebuilds per-company billing
- * snapshots and warms SalesPersonCard so daytime loads are cache/snapshot hits.
+ * Called via GET (with API key) around 02:00. Fetches all project-billing and
+ * SalesPersonCard data so daytime page loads can read from the 23h OData cache.
  */
 
 declare(strict_types=1);
@@ -13,7 +13,6 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/content/localization.php';
 require_once __DIR__ . '/content/helpers.php';
 require_once __DIR__ . '/content/project_billing.php';
-require_once __DIR__ . '/content/billing_snapshot.php';
 require_once __DIR__ . '/content/project_manager_scope.php';
 require_once __DIR__ . '/odata.php';
 
@@ -53,7 +52,6 @@ $result = [
         'overdue_rows' => 0,
         'future_rows' => 0,
         'salesperson_rows' => 0,
-        'snapshot_rows' => 0,
         'errors' => 0,
     ],
     'errors' => [],
@@ -70,15 +68,6 @@ try {
 
     $result['totals']['companies'] = count($availableCompanies);
 
-    $refreshContext = [
-        'baseUrl' => (string) $baseUrl,
-        'auth' => $primaryAuth,
-        'today' => $today,
-        'hideSapImports' => true,
-        'companyEnvironmentMap' => $companyEnvironmentMap,
-        'activeEnvironments' => $activeEnvironments,
-    ];
-
     foreach ($availableCompanies as $companyName) {
         $company = trim((string) $companyName);
         if ($company === '') {
@@ -92,30 +81,26 @@ try {
             'overdue_rows' => 0,
             'future_rows' => 0,
             'salesperson_rows' => 0,
-            'snapshot_version' => 0,
-            'snapshot_rows' => 0,
-            'strategy' => null,
             'error' => null,
         ];
 
         try {
-            $refresh = talosBillingCoalescedRefresh($company, 'nightly', $refreshContext);
-            if (empty($refresh['ok'])) {
-                throw new RuntimeException((string) ($refresh['error'] ?? 'Snapshot refresh failed'));
-            }
+            $buckets = fetchProjectInvoiceBuckets(
+                (string) $baseUrl,
+                $activeEnvironments,
+                $primaryAuth,
+                $today,
+                $company,
+                false,
+                true
+            );
 
-            $snapshot = talosBillingLoadSnapshot($company);
-            $buckets = talosBillingSplitRowsIntoBuckets((array) ($snapshot['rows'] ?? []), $today);
-            $overdueCount = count($buckets['overdue']);
-            $futureCount = count($buckets['upcoming_month']);
+            $overdueCount = count((array) ($buckets['overdue'] ?? []));
+            $futureCount = count((array) ($buckets['upcoming_month'] ?? []));
             $companyResult['overdue_rows'] = $overdueCount;
             $companyResult['future_rows'] = $futureCount;
-            $companyResult['snapshot_version'] = (int) ($refresh['version'] ?? 0);
-            $companyResult['snapshot_rows'] = (int) ($refresh['row_count'] ?? 0);
-            $companyResult['strategy'] = (string) ($refresh['strategy'] ?? 'full');
             $result['totals']['overdue_rows'] += $overdueCount;
             $result['totals']['future_rows'] += $futureCount;
-            $result['totals']['snapshot_rows'] += $companyResult['snapshot_rows'];
 
             $scopeMap = [$company => (string) ($companyEnvironmentMap[$company] ?? '')];
             $salespersonRows = talosPmFetchUserSetupRows(

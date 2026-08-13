@@ -70,7 +70,6 @@ $maxCalls = 0;
 $upcomingWindowLabel = '';
 $upcomingSectionTitle = '';
 $odataError = null;
-$billingSnapshotVersion = 0;
 
 $hasStoredProjectManagerFilter = array_key_exists($userKey, $_SESSION['selected_project_manager_filter_by_user']);
 $storedProjectManagerFilter = trim((string) ($_SESSION['selected_project_manager_filter_by_user'][$userKey] ?? ''));
@@ -92,13 +91,9 @@ try {
             setCompanyEnvironmentMap($companyEnvironmentMap);
         }
     } else {
-        $activeEnvironments = function_exists('talosNormalizeEnvironmentList')
-            ? talosNormalizeEnvironmentList($environment)
-            : (is_array($environment) ? $environment : [trim((string) $environment)]);
-
-        $companyContext = fetchAvailableCompanyContext($baseUrl, $activeEnvironments, $auth);
-        $availableCompanies = $companyContext['available_companies'] ?? [];
-        $companyEnvironmentMap = $companyContext['company_environment_map'] ?? [];
+        $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
+        $availableCompanies = $buckets['available_companies'] ?? [];
+        $companyEnvironmentMap = $buckets['company_environment_map'] ?? [];
         if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
             setCompanyEnvironmentMap($companyEnvironmentMap);
         }
@@ -112,39 +107,6 @@ try {
             $requiresCompanySelection = true;
             unset($_SESSION['selected_company_by_user'][$userKey]);
             unset($_SESSION['selected_company_environment_by_user'][$userKey]);
-        } else {
-            $buckets = null;
-            if (function_exists('talosBillingBucketsFromSnapshot')) {
-                $buckets = talosBillingBucketsFromSnapshot(
-                    $selectedCompany,
-                    $today,
-                    (array) $availableCompanies,
-                    (array) $companyEnvironmentMap
-                );
-            }
-
-            if ($buckets === null) {
-                $buckets = fetchProjectInvoiceBuckets(
-                    $baseUrl,
-                    $environment,
-                    $auth,
-                    $today,
-                    $selectedCompany,
-                    $debugFetchAllRules,
-                    $hideSapImports
-                );
-                $availableCompanies = $buckets['available_companies'] ?? $availableCompanies;
-                $companyEnvironmentMap = $buckets['company_environment_map'] ?? $companyEnvironmentMap;
-                if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
-                    setCompanyEnvironmentMap($companyEnvironmentMap);
-                }
-            }
-
-            $billingSnapshotVersion = (int) ($buckets['snapshot_version'] ?? 0);
-            if ($billingSnapshotVersion <= 0 && function_exists('talosBillingLoadSnapshot')) {
-                $snap = talosBillingLoadSnapshot($selectedCompany);
-                $billingSnapshotVersion = (int) ($snap['version'] ?? 0);
-            }
         }
     }
 
@@ -230,7 +192,6 @@ try {
     $maxCalls = 0;
     $upcomingWindowLabel = '';
     $upcomingSectionTitle = '';
-    $billingSnapshotVersion = 0;
     $odataError = $e->getMessage();
     $publicErrorCodes = [40901];
     $odataErrorPublic = in_array((int) $e->getCode(), $publicErrorCodes, true) ? $e->getMessage() : null;

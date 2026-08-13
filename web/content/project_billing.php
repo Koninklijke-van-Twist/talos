@@ -10,91 +10,9 @@ const PROJECT_BILLING_CHUNK_SIZE = 5;
 const PROJECT_BILLING_MAX_CALLS_PER_REQUEST = 40;
 const PROJECT_BILLING_JOB_LOOKUP_BATCH_SIZE = 50;
 
-const PROJECT_BILLING_DELTA_CACHE_TTL_SECONDS = 30;
-
-function buildProjectInvoiceSelectClause(bool $includeSystemModifiedAt = false): string
+function buildProjectInvoiceSelectClause(): string
 {
-    $fields = 'Job_No,Line_No,Planning_Date,Description,Document_No,Qty_to_Invoice,Line_Amount,LVS_Bill_to_Customer_No,KVT_Bill_To_Cust_No_WO,LVS_Work_Order_No,KVT_Memo_Invoice,KVT_Status_Work_Order,User_ID';
-    if ($includeSystemModifiedAt) {
-        $fields .= ',SystemModifiedAt';
-    }
-
-    return $fields;
-}
-
-function projectInvoiceRowIsDisplayEligible(array $row): bool
-{
-    if ((float) ($row['Qty_to_Invoice'] ?? 0) <= 0) {
-        return false;
-    }
-
-    $status = trim((string) ($row['KVT_Status_Work_Order'] ?? ''));
-    if ($status === '') {
-        $status = trim((string) ($row['Status'] ?? 'Open'));
-    }
-
-    return in_array($status, ['Open', 'Planned', 'Checked'], true);
-}
-
-/**
- * Probe whether SystemModifiedAt is selectable on the planning-lines page.
- */
-function probeProjectInvoiceDeltaField(
-    string $baseUrl,
-    string $environment,
-    array $auth,
-    string $companyName
-): ?string {
-    $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $companyName);
-    $queryUrl = $companyBaseUrl . 'FactureerbareProjectPlanningsRegels'
-        . '?$top=1&$select=SystemModifiedAt';
-
-    try {
-        $resp = odata_get_json($queryUrl, $auth);
-        $rows = $resp['value'] ?? null;
-        if (!is_array($rows) || $rows === []) {
-            // Empty page is fine; field was accepted by the server.
-            return 'SystemModifiedAt';
-        }
-
-        $first = $rows[0] ?? null;
-        if (is_array($first) && array_key_exists('SystemModifiedAt', $first)) {
-            return 'SystemModifiedAt';
-        }
-
-        return 'SystemModifiedAt';
-    } catch (Throwable $e) {
-        return null;
-    }
-}
-
-/**
- * Incremental pull since $modifiedSinceIso (BC DateTime). Omits qty/status filters so
- * ineligible rows can be removed from the snapshot on merge.
- *
- * @return list<array<string, mixed>>
- */
-function fetchProjectInvoiceDeltaRowsForCompany(
-    string $baseUrl,
-    string $environment,
-    array $auth,
-    string $companyName,
-    string $modifiedSinceIso,
-    string $deltaField = 'SystemModifiedAt'
-): array {
-    $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $companyName);
-    $selectClause = buildProjectInvoiceSelectClause(true);
-    $filters = [
-        "(No eq '800000' or No eq '800001')",
-        $deltaField . ' ge ' . $modifiedSinceIso,
-    ];
-
-    $queryUrl = $companyBaseUrl . 'FactureerbareProjectPlanningsRegels'
-        . '?$filter=' . rawurlencode(implode(' and ', $filters))
-        . '&$select=' . $selectClause
-        . '&$orderby=' . rawurlencode($deltaField . ' asc');
-
-    return odata_get_all($queryUrl, $auth, PROJECT_BILLING_DELTA_CACHE_TTL_SECONDS);
+    return 'Job_No,Line_No,Planning_Date,Description,Document_No,Qty_to_Invoice,Line_Amount,LVS_Bill_to_Customer_No,KVT_Bill_To_Cust_No_WO,LVS_Work_Order_No,KVT_Memo_Invoice,KVT_Status_Work_Order,User_ID';
 }
 
 function projectBillingTranslate(string $key, ...$args): string
