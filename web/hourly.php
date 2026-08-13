@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Nightly cache warmer.
+ * Hourly cache warmer.
  *
- * Called via GET (with API key) around 02:00. Fetches all project-billing and
- * SalesPersonCard data so daytime page loads can read from the 23h OData cache.
+ * Called via GET (with API key) about once per hour. Fetches all project-billing
+ * and SalesPersonCard data so page loads can read from the OData cache.
  */
 
 declare(strict_types=1);

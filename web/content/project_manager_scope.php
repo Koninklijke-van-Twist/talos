@@ -4,7 +4,7 @@
  * Constants
  */
 
-const TALOS_PM_SCOPE_CACHE_TTL_SECONDS = 82800; // 23 hours
+const TALOS_PM_SCOPE_CACHE_TTL_SECONDS = 3600; // 1 hour (matches hourly warmer)
 
 /**
  * Functions
