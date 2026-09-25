@@ -81,17 +81,29 @@ $storedProjectManagerFilter = trim((string) ($_SESSION['selected_project_manager
 try {
     if ($requiresCompanySelection) {
         $activeEnvironments = function_exists('talosNormalizeEnvironmentList')
-            ? talosNormalizeEnvironmentList($environment)
-            : (is_array($environment) ? $environment : [trim((string) $environment)]);
+            ? talosNormalizeEnvironmentList($environment ?? [])
+            : (is_array($environment ?? null) ? $environment : [trim((string) ($environment ?? ''))]);
 
-        $companyContext = fetchAvailableCompanyContext($baseUrl, $activeEnvironments, $auth);
+        $companyContext = fetchAvailableCompanyContext(
+            (string) ($baseUrl ?? ''),
+            $activeEnvironments,
+            is_array($auth ?? null) ? $auth : []
+        );
         $availableCompanies = $companyContext['available_companies'] ?? [];
         $companyEnvironmentMap = $companyContext['company_environment_map'] ?? [];
         if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
             setCompanyEnvironmentMap($companyEnvironmentMap);
         }
     } else {
-        $buckets = fetchProjectInvoiceBuckets($baseUrl, $environment, $auth, $today, $selectedCompany, $debugFetchAllRules, $hideSapImports);
+        $buckets = fetchProjectInvoiceBuckets(
+            (string) ($baseUrl ?? ''),
+            $environment ?? [],
+            is_array($auth ?? null) ? $auth : [],
+            $today,
+            $selectedCompany,
+            $debugFetchAllRules,
+            $hideSapImports
+        );
         $availableCompanies = $buckets['available_companies'] ?? [];
         $companyEnvironmentMap = $buckets['company_environment_map'] ?? [];
         if (function_exists('setCompanyEnvironmentMap') && is_array($companyEnvironmentMap)) {
@@ -118,7 +130,12 @@ try {
 
         $salespersonRows = [];
         try {
-            $salespersonRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
+            $salespersonRows = talosPmFetchUserSetupRows(
+                (string) ($baseUrl ?? ''),
+                $singleCompanyScopeMap,
+                is_array($auth ?? null) ? $auth : [],
+                ''
+            );
         } catch (Exception $ignored) {
             $salespersonRows = [];
         }

@@ -33,7 +33,12 @@ if (!validateApiKey($incomingKey, $apiKeys)) {
 
 // Haal te factureren projectregels op
 try {
-    $pendingInvoiceLines = fetchPendingProjectInvoiceLines($baseUrl, $environment, $auth, $today);
+    $pendingInvoiceLines = fetchPendingProjectInvoiceLines(
+        (string) ($baseUrl ?? ''),
+        $environment ?? [],
+        is_array($auth ?? null) ? $auth : [],
+        $today
+    );
 } catch (Exception $e) {
     http_response_code(502);
     echo json_encode(['error' => 'OData ophalen mislukt: ' . $e->getMessage()]);

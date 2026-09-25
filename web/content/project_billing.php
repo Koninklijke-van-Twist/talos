@@ -29,6 +29,21 @@ function projectBillingTranslate(string $key, ...$args): string
     return empty($args) ? $text : vsprintf($text, $args);
 }
 
+if (!function_exists('talosMimirEnabled')) {
+    /**
+     * Mímir is actief zodra $mimirApi in auth.php gezet is.
+     */
+    function talosMimirEnabled(): bool
+    {
+        global $mimirApi;
+        if (isset($mimirApi) && is_string($mimirApi) && trim($mimirApi) !== '') {
+            return true;
+        }
+
+        return function_exists('odata_mimir_enabled') && odata_mimir_enabled();
+    }
+}
+
 function resolveAuthForEnvironment(string $environment, array $fallbackAuth): array
 {
     if (function_exists('getAuthForEnvironment')) {
@@ -334,8 +349,87 @@ function fetchAvailableCompanyNames(string $baseUrl, string $environment, array 
     return $names;
 }
 
+/**
+ * Company-discovery via Mímir companies.php (geen BC auth_list/baseUrl).
+ *
+ * @param list<string> $activeEnvironments leeg = alle environments uit Mímir
+ * @return array{available_companies: list<string>, company_environment_map: array<string, string>}
+ */
+function talosFetchCompanyContextViaMimir(array $activeEnvironments): array
+{
+    if (!function_exists('odata_mimir_companies_as_rows')) {
+        $odataPath = __DIR__ . '/../odata.php';
+        if (is_file($odataPath)) {
+            require_once $odataPath;
+        }
+    }
+    if (!function_exists('odata_mimir_companies_as_rows')) {
+        throw new Exception('Mímir company-discovery vereist odata.php.');
+    }
+
+    $allowed = [];
+    foreach ($activeEnvironments as $environment) {
+        $name = trim((string) $environment);
+        if ($name === '') {
+            continue;
+        }
+        $allowed[strtolower($name)] = true;
+    }
+
+    $rows = odata_mimir_companies_as_rows(null);
+    $allNames = [];
+    $companyEnvironmentMap = [];
+
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $companyName = trim((string) ($row['Name'] ?? ''));
+        $environmentName = trim((string) ($row['environment'] ?? ''));
+        if ($companyName === '' || $environmentName === '') {
+            continue;
+        }
+        if ($allowed !== [] && !isset($allowed[strtolower($environmentName)])) {
+            continue;
+        }
+
+        if (isset($companyEnvironmentMap[$companyName]) && $companyEnvironmentMap[$companyName] !== $environmentName) {
+            $message = projectBillingTranslate(
+                'error.company_environment_overlap',
+                $companyName,
+                $companyEnvironmentMap[$companyName] . ', ' . $environmentName
+            );
+            throw new Exception($message, 40901);
+        }
+
+        $companyEnvironmentMap[$companyName] = $environmentName;
+        if (!in_array($companyName, $allNames, true)) {
+            $allNames[] = $companyName;
+        }
+    }
+
+    sort($allNames, SORT_NATURAL | SORT_FLAG_CASE);
+
+    if ($allowed === []) {
+        $envs = array_values(array_unique(array_values($companyEnvironmentMap)));
+        sort($envs, SORT_NATURAL | SORT_FLAG_CASE);
+        $GLOBALS['talos_mimir_active_environments'] = $envs;
+    }
+
+    return [
+        'available_companies' => $allNames,
+        'company_environment_map' => $companyEnvironmentMap,
+    ];
+}
+
 function fetchAvailableCompanyContext(string $baseUrl, array $activeEnvironments, array $fallbackAuth): array
 {
+    // Mímir: companies + environments uit Mímir API — geen $auth_list/$baseUrl nodig.
+    if (talosMimirEnabled()) {
+        return talosFetchCompanyContextViaMimir($activeEnvironments);
+    }
+
     $allNames = [];
     $companyEnvironmentMap = [];
 
@@ -392,7 +486,9 @@ function fetchProjectInvoiceBuckets(
         ? talosNormalizeEnvironmentList($environment)
         : (is_array($environment) ? $environment : [trim((string) $environment)]);
 
-    if (empty($activeEnvironments)) {
+    // Lege environment-lijst blijft bij BC de historische default. Bij Mímir komen
+    // de environments uit companies.php; kvtmdlive_aad zou de lijst anders afkappen.
+    if (empty($activeEnvironments) && !talosMimirEnabled()) {
         $activeEnvironments = ['kvtmdlive_aad'];
     }
 
