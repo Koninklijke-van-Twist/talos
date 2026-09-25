@@ -60,12 +60,12 @@ function validateApiKey(string $incoming, array $apiKeys): bool
 
 function buildOdataCompanyUrl(string $baseUrl, string $environment, string $company): string
 {
-    return rtrim($baseUrl, '/') . '/' . $environment . '/ODataV4/Company%28%27' . rawurlencode($company) . '%27%29/';
+    return rtrim(trim($baseUrl), '/') . '/' . $environment . '/ODataV4/Company%28%27' . rawurlencode($company) . '%27%29/';
 }
 
 function buildOdataRootUrl(string $baseUrl, string $environment): string
 {
-    return rtrim($baseUrl, '/') . '/' . $environment . '/ODataV4/';
+    return rtrim(trim($baseUrl), '/') . '/' . $environment . '/ODataV4/';
 }
 
 function buildOdataMetadataUrl(string $baseUrl, string $environment): string

@@ -29,9 +29,9 @@ try {
         $accessMap = talosLoadDepartmentAccessMap();
         $selectedCompany = trim((string) ($_GET['company'] ?? ''));
         $departments = talosResolveDepartmentOptions(
-            (string) $baseUrl,
-            $environment,
-            $auth,
+            (string) ($baseUrl ?? ''),
+            $environment ?? [],
+            is_array($auth ?? null) ? $auth : [],
             [],
             $selectedCompany,
             $accessMap

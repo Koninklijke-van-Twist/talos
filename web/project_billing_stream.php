@@ -80,9 +80,9 @@ if ($streamAction === 'save_project_manager_filter') {
 
 try {
     $buckets = fetchProjectInvoiceBuckets(
-        $baseUrl,
-        $environment,
-        $auth,
+        (string) ($baseUrl ?? ''),
+        $environment ?? [],
+        is_array($auth ?? null) ? $auth : [],
         $today,
         $selectedCompany,
         $debugFetchAllRules,
@@ -93,7 +93,12 @@ try {
     $singleCompanyScopeMap = talosPmSelectSingleCompanyEnvironmentMap($companyEnvironmentMap, $selectedCompany);
     $salespersonRows = [];
     try {
-        $salespersonRows = talosPmFetchUserSetupRows($baseUrl, $singleCompanyScopeMap, $auth, '');
+        $salespersonRows = talosPmFetchUserSetupRows(
+            (string) ($baseUrl ?? ''),
+            $singleCompanyScopeMap,
+            is_array($auth ?? null) ? $auth : [],
+            ''
+        );
     } catch (Exception $ignored) {
         $salespersonRows = [];
     }

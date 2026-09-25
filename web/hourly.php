@@ -33,13 +33,13 @@ $today = date('Y-m-d');
 $startedAt = microtime(true);
 
 $activeEnvironments = function_exists('talosNormalizeEnvironmentList')
-    ? talosNormalizeEnvironmentList($environment)
-    : (is_array($environment) ? $environment : [trim((string) $environment)]);
+    ? talosNormalizeEnvironmentList($environment ?? [])
+    : (is_array($environment ?? null) ? $environment : [trim((string) ($environment ?? ''))]);
 
 $primaryEnvironment = (string) ($activeEnvironments[0] ?? '');
 $primaryAuth = function_exists('getAuthForEnvironment') && $primaryEnvironment !== ''
     ? getAuthForEnvironment($primaryEnvironment)
-    : $auth;
+    : (is_array($auth ?? null) ? $auth : []);
 
 $result = [
     'ok' => true,
@@ -58,7 +58,7 @@ $result = [
 ];
 
 try {
-    $companyContext = fetchAvailableCompanyContext((string) $baseUrl, $activeEnvironments, $primaryAuth);
+    $companyContext = fetchAvailableCompanyContext((string) ($baseUrl ?? ''), $activeEnvironments, $primaryAuth);
     $availableCompanies = (array) ($companyContext['available_companies'] ?? []);
     $companyEnvironmentMap = (array) ($companyContext['company_environment_map'] ?? []);
 
@@ -86,7 +86,7 @@ try {
 
         try {
             $buckets = fetchProjectInvoiceBuckets(
-                (string) $baseUrl,
+                (string) ($baseUrl ?? ''),
                 $activeEnvironments,
                 $primaryAuth,
                 $today,
@@ -104,7 +104,7 @@ try {
 
             $scopeMap = [$company => (string) ($companyEnvironmentMap[$company] ?? '')];
             $salespersonRows = talosPmFetchUserSetupRows(
-                (string) $baseUrl,
+                (string) ($baseUrl ?? ''),
                 $scopeMap,
                 $primaryAuth,
                 ''

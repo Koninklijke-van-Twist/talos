@@ -62,7 +62,15 @@ try {
     if ($companyEnvironment === null || $companyEnvironment === '') {
         $companyEnvironment = function_exists('getPrimaryEnvironment')
             ? getPrimaryEnvironment()
-            : (is_array($environment) ? (string) ($environment[0] ?? '') : (string) $environment);
+            : (is_array($environment ?? null) ? (string) ($environment[0] ?? '') : (string) ($environment ?? ''));
+    }
+
+    // Leeg environment maakt //ODataV4/… en dat kan Mímir niet vertalen.
+    if ($companyEnvironment === '' && function_exists('odata_mimir_enabled') && odata_mimir_enabled()) {
+        $map = function_exists('odata_mimir_company_environment_map')
+            ? odata_mimir_company_environment_map(null)
+            : [];
+        $companyEnvironment = (string) ($map[$company] ?? '');
     }
 
     if ($companyEnvironment === '') {
@@ -71,9 +79,9 @@ try {
 
     $authForEnvironment = function_exists('getAuthForEnvironment')
         ? getAuthForEnvironment($companyEnvironment)
-        : $auth;
+        : (is_array($auth ?? null) ? $auth : []);
 
-    $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $companyEnvironment, $company);
+    $companyBaseUrl = buildOdataCompanyUrl((string) ($baseUrl ?? ''), $companyEnvironment, $company);
 
     $filters = [
         'Job_No eq ' . odataStringLiteral($jobNo),
