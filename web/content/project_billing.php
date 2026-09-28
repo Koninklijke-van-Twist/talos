@@ -325,13 +325,13 @@ function fetchAvailableCompanyNames(string $baseUrl, string $environment, array 
     // default company is ingesteld. `Company` werkt daar meestal wel.
     try {
         $companies = odata_get_all(
-            $rootUrl . 'Company?$select=Name,Display_Name',
+            $rootUrl . 'Company?$select=Name',
             $auth,
             PROJECT_BILLING_CACHE_TTL_SECONDS
         );
     } catch (Exception $firstError) {
         $companies = odata_get_all(
-            $rootUrl . 'Companies?$select=Name,Display_Name',
+            $rootUrl . 'Companies?$select=Name',
             $auth,
             PROJECT_BILLING_CACHE_TTL_SECONDS
         );
