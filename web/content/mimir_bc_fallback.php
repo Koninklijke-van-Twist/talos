@@ -232,12 +232,34 @@ function odata_bc_environment_for_company(string $company): ?string
 
 function odata_bc_auth_for_named_environment(string $env): ?array
 {
-    global $auth_list, $auth;
+    global $auth_list, $auth, $environment;
     if (isset($auth_list) && is_array($auth_list) && isset($auth_list[$env]) && odata_auth_is_usable($auth_list[$env])) {
         return $auth_list[$env];
     }
+    if (!isset($auth) || !odata_auth_is_usable($auth)) {
+        return null;
+    }
+    // Geen $auth_list (of een lege): $auth geldt voor elk environment.
+    if (!isset($auth_list) || !is_array($auth_list) || $auth_list === []) {
+        return $auth;
+    }
+    $primary = null;
+    if (isset($environment)) {
+        $raw = is_array($environment) ? $environment : [$environment];
+        foreach ($raw as $item) {
+            $name = trim((string) $item);
+            if ($name === '' || strcasecmp($name, 'mimir') === 0) {
+                continue;
+            }
+            $primary = $name;
+            break;
+        }
+    }
+    if ($primary !== null && strcasecmp($primary, $env) === 0) {
+        return $auth;
+    }
     $list = odata_bc_environment_list();
-    if (count($list) === 1 && strcasecmp($list[0], $env) === 0 && isset($auth) && odata_auth_is_usable($auth)) {
+    if (count($list) === 1 && strcasecmp($list[0], $env) === 0) {
         return $auth;
     }
     return null;
@@ -269,8 +291,10 @@ function odata_bc_auth_for_fallback(array $passed): ?array
 }
 
 /**
- * Auth voor het environment in de URL of van het bedrijf. Niet de primaire
- * $auth als die bij een ander environment hoort.
+ * Auth voor het environment in de URL of van het bedrijf.
+ * Zonder $auth_list (of met een lege lijst) is $auth voor elk environment.
+ * Bij een gevulde lijst hoort $auth alleen bij de primaire $environment
+ * als die geen eigen entry heeft.
  */
 function odata_bc_auth_for_request(string $url, string $company = ''): ?array
 {

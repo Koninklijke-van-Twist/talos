@@ -159,14 +159,21 @@ if (!function_exists('getEnvironmentForCompany')) {
     }
 }
 
-// Zonder Mímir blijft ontbrekende BC-auth een harde fout. Met Mímir is $auth een lege sentinel.
+// Zonder Mímir blijft ontbrekende BC-auth een harde fout. Met Mímir is $auth een lege
+// sentinel als er nog geen credentials stonden. Een al gezette $auth blijft staan,
+// anders kan de BC-fallback die niet meer gebruiken.
 if (talosMimirEnabled()) {
+    $talosOriginalAuth = (isset($auth) && is_array($auth)) ? $auth : null;
     try {
         $primaryEnvironment = getPrimaryEnvironment();
         $auth = $primaryEnvironment === '' ? [] : getAuthForEnvironment($primaryEnvironment);
     } catch (InvalidArgumentException $ignored) {
         $auth = [];
     }
+    if ($auth === [] && is_array($talosOriginalAuth) && $talosOriginalAuth !== []) {
+        $auth = $talosOriginalAuth;
+    }
+    unset($talosOriginalAuth);
 } else {
     $auth = getAuthForEnvironment(getPrimaryEnvironment());
 }
