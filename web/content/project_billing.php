@@ -425,7 +425,8 @@ function talosFetchCompanyContextViaMimir(array $activeEnvironments): array
 
 function fetchAvailableCompanyContext(string $baseUrl, array $activeEnvironments, array $fallbackAuth): array
 {
-    // Mímir: companies + environments uit Mímir API — geen $auth_list/$baseUrl nodig.
+    // Mímir eerst. Faalt die aanroep, dan haalt odata dezelfde bedrijven via de oude BC-route
+    // ($baseUrl, $auth_list, $environment). Die credentials moeten in auth.php blijven staan.
     if (talosMimirEnabled()) {
         return talosFetchCompanyContextViaMimir($activeEnvironments);
     }

@@ -54,7 +54,8 @@ if (!function_exists('getActiveEnvironments')) {
             return $resolved;
         }
 
-        // Geen lokale BC-config: bij Mímir environments afleiden uit companies.php.
+        // Geen lokale environment-lijst: bij Mímir environments afleiden uit companies.php.
+        // Valt Mímir uit, dan leest die call alsnog $baseUrl/$auth_list (directe BC).
         if (talosMimirEnabled()) {
             $cached = $GLOBALS['talos_mimir_active_environments'] ?? null;
             if (is_array($cached) && $cached !== []) {

@@ -18,6 +18,10 @@ function consolelog($text)
     file_put_contents('php://stdout', $text);
 }
 
+// Goedgekeurde uitzondering (Tim Falken, 2026-09-28): enige wijziging voor de
+// Mímir-BC-fallback. De logica staat in content/mimir_bc_fallback.php.
+require_once __DIR__ . '/content/mimir_bc_fallback.php';
+
 /**
  * Mímir-proxy: als $mimirApi in auth.php staat, gaan alle OData-fetches
  * (hourly/on-demand via odata_get_all) naar Mímir i.p.v. BC.
@@ -55,6 +59,9 @@ function odata_mimir_base_url(): string
 
 function odata_mimir_request(string $method, string $path, ?array $jsonBody = null): array
 {
+    if (function_exists('talos_mimir_bc_request')) {
+        return talos_mimir_bc_request($method, $path, $jsonBody);
+    }
     $apiKey = odata_mimir_api_key();
     if ($apiKey === '') {
         throw new Exception('Mímir API-sleutel ontbreekt ($mimirApi).');
@@ -162,6 +169,9 @@ function odata_mimir_parse_companies_url(string $url): ?array
  */
 function odata_mimir_companies_as_rows(?string $environment = null): array
 {
+    if (function_exists('talos_mimir_bc_companies_as_rows')) {
+        return talos_mimir_bc_companies_as_rows($environment);
+    }
     $response = odata_mimir_request('GET', 'companies.php');
     $items = $response['value'] ?? null;
     if (!is_array($items)) {
@@ -241,6 +251,9 @@ function odata_mimir_company_environment_map(?string $environment = null): array
  */
 function odata_mimir_query(string $company, string $table, array $odataQuery, int $ttlSeconds): array
 {
+    if (function_exists('talos_mimir_bc_query')) {
+        return talos_mimir_bc_query($company, $table, $odataQuery, $ttlSeconds);
+    }
     consolelog("Mímir query company=$company table=$table\n");
 
     $body = [
@@ -283,6 +296,9 @@ function odata_mimir_query(string $company, string $table, array $odataQuery, in
  */
 function odata_mimir_fetch_all(string $url, int $ttlSeconds): array
 {
+    if (function_exists('talos_mimir_bc_fetch_all')) {
+        return talos_mimir_bc_fetch_all($url, $ttlSeconds);
+    }
     consolelog("Mímir fetch $url\n");
 
     $companies = odata_mimir_parse_companies_url($url);
@@ -300,6 +316,9 @@ function odata_mimir_fetch_all(string $url, int $ttlSeconds): array
 
 function odata_get_all(string $url, array $auth, $ttlSeconds = 300): array
 {
+    if (function_exists('talos_mimir_bc_get_all')) {
+        return talos_mimir_bc_get_all($url, $auth, $ttlSeconds);
+    }
     consolelog("Fetching $url\n");
     $ttlSeconds = max(0, (int) $ttlSeconds);
 
@@ -400,6 +419,9 @@ function odata_get_json(string $url, array $auth): array
 
 function build_cache_key(string $url, array $auth): string
 {
+    if (function_exists('talos_mimir_bc_cache_key')) {
+        return talos_mimir_bc_cache_key($url, $auth);
+    }
     require __DIR__ . "/auth.php";
     $user = (string) ($auth['user'] ?? '');
     $environmentKey = '';
