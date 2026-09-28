@@ -406,6 +406,60 @@ if (count($calls) !== $callsBeforeSandboxRefuse) {
     fail('Sandbox-URL zonder eigen entry mag geen BC-call doen');
 }
 
+$auth = ['mode' => 'basic', 'user' => 'primary-user', 'pass' => 'primary-secret'];
+$auth_list = [
+    'Sandbox' => ['mode' => 'basic', 'user' => 'sand-user', 'pass' => 'sand-secret'],
+];
+$environments = ['Production', 'Sandbox'];
+$baseUrl = 'https://bc.example:7148/';
+$mimirApi = 'mimir_test_key_should_not_leak';
+$mimirBase = 'http://127.0.0.1:9';
+$primaryUrl = "https://mimir.invalid/Production/ODataV4/Company('KVT%20Gas')/AppWerkorders?\$select=No";
+foreach (['mimir', null] as $primarySource) {
+    odata_mimir_circuit_reset();
+    if ($primarySource === null) {
+        unset($environment);
+        unset($GLOBALS['environment']);
+    } else {
+        $environment = $primarySource;
+    }
+    $beforePrimary = count($calls);
+    $primaryRows = odata_mimir_fetch_all($primaryUrl, 15);
+    $primaryCall = $calls[$beforePrimary] ?? null;
+    $label = $primarySource === null ? 'zonder $environment' : "\$environment=$primarySource";
+    if (($primaryRows[0]['No'] ?? '') !== 'WO-1' || !is_array($primaryCall) || strpos($primaryCall['url'], "https://bc.example:7148/Production/ODataV4/Company('KVT%20Gas')/AppWerkorders?") !== 0 || $primaryCall['user'] !== 'primary-user') {
+        fail('primaire environment uit $environments moet $auth gebruiken (' . $label . '): ' . json_encode($primaryCall));
+    }
+}
+odata_mimir_circuit_reset();
+$environment = 'mimir';
+$beforeSandboxOwn = count($calls);
+$sandboxOwnRows = odata_mimir_fetch_all(
+    "https://mimir.invalid/Sandbox/ODataV4/Company('KVT%20Gas')/AppWerkorders?\$select=No",
+    15
+);
+$sandboxOwnCall = $calls[$beforeSandboxOwn] ?? null;
+if (($sandboxOwnRows[0]['No'] ?? '') !== 'WO-1' || !is_array($sandboxOwnCall) || $sandboxOwnCall['user'] !== 'sand-user') {
+    fail('eigen auth_list-entry blijft gelden als $environment alleen mimir is: ' . json_encode($sandboxOwnCall));
+}
+odata_mimir_circuit_reset();
+$callsBeforeOther = count($calls);
+$otherRefused = null;
+try {
+    odata_mimir_fetch_all(
+        "https://mimir.invalid/Test/ODataV4/Company('KVT%20Gas')/AppWerkorders?\$select=No",
+        15
+    );
+    fail('ander environment zonder entry moet weigeren');
+} catch (Throwable $exception) {
+    $otherRefused = $exception;
+}
+if (!$otherRefused instanceof Throwable || strpos($otherRefused->getMessage(), 'Mímir') === false || count($calls) !== $callsBeforeOther) {
+    fail('ander environment deed toch een BC-call of gooide niet de Mímir-fout');
+}
+unset($environments);
+unset($GLOBALS['environments']);
+
 odata_mimir_circuit_reset();
 $mimirApi = 'mimir_test_key_should_not_leak';
 $environment = 'Production';
