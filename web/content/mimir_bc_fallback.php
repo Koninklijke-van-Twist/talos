@@ -574,11 +574,11 @@ function odata_direct_companies_as_rows(?string $environmentFilter = null): arra
             odata_bc_rethrow_mimir();
         }
 
-        $companyUrl = $base . $env . '/ODataV4/Company?$select=Name';
+        $companyUrl = $base . $env . '/ODataV4/Company?$select=Name,Display_Name';
         try {
             $rows = odata_get_all_direct($companyUrl, $auth, 300);
         } catch (Exception $ignored) {
-            $rows = odata_get_all_direct($base . $env . '/ODataV4/Companies?$select=Name', $auth, 300);
+            $rows = odata_get_all_direct($base . $env . '/ODataV4/Companies?$select=Name,Display_Name', $auth, 300);
         }
         foreach ($rows as $row) {
             if (!is_array($row)) {

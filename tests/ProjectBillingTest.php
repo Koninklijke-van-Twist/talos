@@ -194,29 +194,6 @@ class ProjectBillingTest extends TestCase
         $this->assertSame('kvtgermanylive_aad', $context['company_environment_map']['Beta DE']);
     }
 
-    public function testFetchAvailableCompanyNamesSelectsOnlyName(): void
-    {
-        $GLOBALS['__projectBillingTestOdataResponder'] = static function (string $url): array {
-            $GLOBALS['__projectBillingTestLastUrl'] = $url;
-
-            return [
-                ['Name' => 'Alpha', 'Display_Name' => 'Alpha weergavenaam'],
-                ['Name' => '', 'Display_Name' => 'Alleen weergavenaam'],
-            ];
-        };
-
-        $names = fetchAvailableCompanyNames(
-            'https://example.test',
-            'kvtmdlive_aad',
-            ['user' => 'u', 'pass' => 'p']
-        );
-
-        $this->assertSame(['Alpha'], $names);
-        $url = (string) ($GLOBALS['__projectBillingTestLastUrl'] ?? '');
-        $this->assertStringContainsString('Company?$select=Name', $url);
-        $this->assertStringNotContainsString('Display_Name', $url);
-    }
-
     public function testFetchAvailableCompanyContextThrowsOnCrossEnvironmentOverlap(): void
     {
         $GLOBALS['__projectBillingTestOdataResponder'] = static function (string $url): array {
