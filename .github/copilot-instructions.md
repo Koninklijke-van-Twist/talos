@@ -7,7 +7,7 @@
 
 ## Niet wijzigen
 - Bestand `web/logincheck.php` niet aanpassen tenzij expliciete goedkeuring door de gebruiker is gegeven.
-- Bestand `web/odata.php` niet aanpassen tenzij expliciete goedkeuring door de gebruiker is gegeven.
+- Bestand `web/odata.php` niet aanpassen tenzij expliciete goedkeuring door de gebruiker is gegeven. Uitzondering (Tim Falken, 2026-09-28): de Mímir-BC-fallback mag `web/odata.php` alleen met een require-hook wijzigen. De fallback-logica staat in `web/content/mimir_bc_fallback.php`.
 - Bestand `web/auth.php` alleen aanpassen na expliciete gebruikersvraag.
 
 ## Data en logica werkorders
@@ -67,7 +67,7 @@
   - geen class-definities tussen page-load code in gecombineerde scriptbestanden
 - Respecteer altijd bestaande uitzonderingen uit deze instructies:
   - `web/logincheck.php` niet aanpassen
-  - `web/odata.php` niet aanpassen
+  - `web/odata.php` niet aanpassen, behalve de door Tim Falken (2026-09-28) goedgekeurde require-hook naar `web/content/mimir_bc_fallback.php`
   - `web/auth.php` alleen aanpassen na expliciete gebruikersvraag
 
 ## Lokalisatie (meertaligheid)

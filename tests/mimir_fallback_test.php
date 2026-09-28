@@ -169,6 +169,85 @@ if (($map['Hunter van Twist'] ?? '') !== 'Production' || ($map['KVT Gas'] ?? '')
     fail('environment-map viel niet terug op BC: ' . json_encode($map));
 }
 
+$auth_list = [
+    'Production' => ['mode' => 'basic', 'user' => 'prod-user', 'pass' => 'prod-secret'],
+    'Sandbox' => ['mode' => 'basic', 'user' => 'sand-user', 'pass' => 'sand-secret'],
+];
+$environment = 'Production';
+$GLOBALS['talos_bc_company_environments'] = ['KVT Gas' => 'Sandbox'];
+odata_mimir_circuit_reset();
+$beforeCompanyEnv = count($calls);
+$companyEnvRows = odata_mimir_query('KVT Gas', 'AppResource', ['$select' => 'No'], 30);
+$companyEnvCall = $calls[$beforeCompanyEnv] ?? null;
+if (($companyEnvRows[0]['No'] ?? '') !== 'WO-1' || !is_array($companyEnvCall) || strpos($companyEnvCall['url'], "/Sandbox/ODataV4/Company('KVT%20Gas')/AppResource?") === false || $companyEnvCall['user'] !== 'sand-user') {
+    fail('query-fallback moet het environment van het bedrijf en die auth_list-entry gebruiken: ' . json_encode($companyEnvCall));
+}
+
+odata_mimir_circuit_reset();
+$beforeSandbox = count($calls);
+$sandboxRows = odata_get_all(
+    "https://mimir.invalid/Sandbox/ODataV4/Company('KVT%20Gas')/AppWerkorders?\$select=No",
+    $auth_list['Production'],
+    15
+);
+$sandboxCall = $calls[$beforeSandbox] ?? null;
+if (($sandboxRows[0]['No'] ?? '') !== 'WO-1' || !is_array($sandboxCall) || strpos($sandboxCall['url'], 'https://bc.example:7148/Sandbox/ODataV4/Company(') !== 0 || $sandboxCall['user'] !== 'sand-user') {
+    fail('entity-fallback moet Sandbox-auth gebruiken, niet de primaire: ' . json_encode($sandboxCall));
+}
+
+if (!function_exists('getActiveEnvironments')) {
+    function getActiveEnvironments(): array
+    {
+        if (function_exists('odata_mimir_circuit_open') && odata_mimir_circuit_open()) {
+            fail('cache-key mag tijdens fallback getActiveEnvironments niet aanroepen');
+        }
+        global $environment;
+        if (is_array($environment)) {
+            return array_values(array_map('strval', $environment));
+        }
+        $single = trim((string) $environment);
+        if ($single === '' || strcasecmp($single, 'mimir') === 0) {
+            return [];
+        }
+        return [$single];
+    }
+}
+$environment = 'mimir';
+$cacheKey = build_cache_key(
+    "https://bc.example:7148/Sandbox/ODataV4/Company('KVT%20Gas')/AppResource?\$select=No",
+    $auth_list['Sandbox']
+);
+if (strpos($cacheKey, '|sand-user|Sandbox') === false || strpos($cacheKey, 'mimir') !== false) {
+    fail('cache-key moet de echte BC-environment gebruiken, kreeg: ' . $cacheKey);
+}
+
+$authImportPath = sys_get_temp_dir() . '/talos-auth-import-' . getmypid() . '.php';
+file_put_contents(
+    $authImportPath,
+    "<?php\n\$baseUrl = 'https://imported.example:7148/';\n\$environment = 'Sandbox';\n\$auth_list = ['Sandbox' => ['mode' => 'basic', 'user' => 'from-file', 'pass' => 'file-secret']];\n\$auth = \$auth_list['Sandbox'];\n\$mimirApi = 'mimir_from_file';\n"
+);
+$savedGlobals = [];
+foreach (['baseUrl', 'environment', 'auth', 'auth_list', 'mimirApi', 'mimirBase'] as $globalName) {
+    $savedGlobals[$globalName] = array_key_exists($globalName, $GLOBALS) ? $GLOBALS[$globalName] : null;
+}
+talos_import_web_auth_php($authImportPath);
+if (($GLOBALS['baseUrl'] ?? '') !== 'https://imported.example:7148/' || ($GLOBALS['environment'] ?? '') !== 'Sandbox' || ($GLOBALS['auth_list']['Sandbox']['user'] ?? '') !== 'from-file' || ($GLOBALS['mimirApi'] ?? '') !== 'mimir_from_file') {
+    fail('lazy auth.php moet BC-variabelen naar $GLOBALS kopiëren');
+}
+foreach ($savedGlobals as $globalName => $savedValue) {
+    if ($savedValue === null) {
+        unset($GLOBALS[$globalName]);
+    } else {
+        $GLOBALS[$globalName] = $savedValue;
+    }
+}
+@unlink($authImportPath);
+$baseUrl = $GLOBALS['baseUrl'];
+$environment = $GLOBALS['environment'];
+$auth = $GLOBALS['auth'];
+$auth_list = $GLOBALS['auth_list'];
+$mimirApi = $GLOBALS['mimirApi'];
+
 $loggedBeforeRethrow = fallback_count();
 $callsBeforeRethrow = count($calls);
 odata_mimir_circuit_reset();
