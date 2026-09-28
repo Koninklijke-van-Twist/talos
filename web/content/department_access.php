@@ -309,7 +309,7 @@ function talosFetchDepartmentOptionsFromCompany(
 
     $companyBaseUrl = buildOdataCompanyUrl($baseUrl, $environment, $company);
     $queryUrl = $companyBaseUrl . 'DimensionValueList'
-        . '?$select=' . rawurlencode('Dimension_Code,Code,Name,Blocked')
+        . '?$select=' . rawurlencode('Code,Name,Blocked')
         . '&$filter=' . rawurlencode('Blocked eq false');
 
     try {

@@ -4,6 +4,19 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
+if (!function_exists('odata_get_all')) {
+    function odata_get_all(string $url, array $auth, $ttlSeconds = 300): array
+    {
+        $GLOBALS['__projectBillingTestLastUrl'] = $url;
+
+        if (isset($GLOBALS['__projectBillingTestOdataResponder']) && is_callable($GLOBALS['__projectBillingTestOdataResponder'])) {
+            return (array) call_user_func($GLOBALS['__projectBillingTestOdataResponder'], $url, $auth, $ttlSeconds);
+        }
+
+        return [];
+    }
+}
+
 require_once __DIR__ . '/../web/content/department_access.php';
 
 class DepartmentAccessTest extends TestCase
@@ -82,6 +95,40 @@ class DepartmentAccessTest extends TestCase
 
         $none = talosFilterRowsByAllowedDepartments($rows, []);
         $this->assertSame([], $none);
+    }
+
+    public function testFetchDepartmentOptionsSelectsOnlyUsedFields(): void
+    {
+        $GLOBALS['__projectBillingTestLastUrl'] = '';
+        $GLOBALS['__projectBillingTestOdataResponder'] = static function (string $url): array {
+            $GLOBALS['__projectBillingTestLastUrl'] = $url;
+
+            return [
+                ['Dimension_Code' => 'AFDELING', 'Code' => '65', 'Name' => 'Planning', 'Blocked' => false],
+                ['Dimension_Code' => 'AFDELING', 'Code' => '150', 'Name' => 'Te hoog', 'Blocked' => false],
+                ['Dimension_Code' => 'ANDERS', 'Code' => '10', 'Name' => 'Geblokkeerd', 'Blocked' => true],
+            ];
+        };
+
+        $options = talosFetchDepartmentOptionsFromCompany(
+            'https://example.test',
+            'env',
+            ['user' => 'u', 'pass' => 'p'],
+            'Company'
+        );
+
+        $this->assertSame([[
+            'code' => '65',
+            'name' => 'Planning',
+            'label' => '65 - Planning',
+        ]], $options);
+
+        $url = rawurldecode((string) $GLOBALS['__projectBillingTestLastUrl']);
+        $this->assertStringContainsString('$select=Code,Name,Blocked', $url);
+        $this->assertStringContainsString('$filter=Blocked eq false', $url);
+        $this->assertStringNotContainsString('Dimension_Code', $url);
+
+        unset($GLOBALS['__projectBillingTestOdataResponder'], $GLOBALS['__projectBillingTestLastUrl']);
     }
 
     public function testIsIctUserEmailMatchesCaseInsensitive(): void
