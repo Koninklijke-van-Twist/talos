@@ -183,6 +183,37 @@ function odata_bc_environment(): ?string
     return $list[0] ?? null;
 }
 
+/**
+ * Eerste echte BC-environmentnaam uit een string of lijst. Slaat 'mimir' over.
+ * Een associatieve lijst (naam => auth) gebruikt de sleutel.
+ */
+function odata_bc_first_environment_name($value): ?string
+{
+    if (is_string($value) || is_int($value) || is_float($value)) {
+        $name = trim((string) $value);
+        if ($name === '' || strcasecmp($name, 'mimir') === 0) {
+            return null;
+        }
+        return $name;
+    }
+    if (!is_array($value)) {
+        return null;
+    }
+    foreach ($value as $key => $item) {
+        $name = '';
+        if (is_string($key) && is_array($item)) {
+            $name = trim($key);
+        } elseif (is_string($item) || is_int($item) || is_float($item)) {
+            $name = trim((string) $item);
+        }
+        if ($name === '' || strcasecmp($name, 'mimir') === 0) {
+            continue;
+        }
+        return $name;
+    }
+    return null;
+}
+
 function odata_bc_environment_from_url(string $url): ?string
 {
     $parts = parse_url($url);
@@ -232,12 +263,29 @@ function odata_bc_environment_for_company(string $company): ?string
 
 function odata_bc_auth_for_named_environment(string $env): ?array
 {
-    global $auth_list, $auth;
+    global $auth_list, $auth, $environment, $environments;
     if (isset($auth_list) && is_array($auth_list) && isset($auth_list[$env]) && odata_auth_is_usable($auth_list[$env])) {
         return $auth_list[$env];
     }
-    $list = odata_bc_environment_list();
-    if (count($list) === 1 && strcasecmp($list[0], $env) === 0 && isset($auth) && odata_auth_is_usable($auth)) {
+    if (!isset($auth) || !odata_auth_is_usable($auth)) {
+        return null;
+    }
+    // Geen $auth_list (of een lege): $auth geldt voor elk environment.
+    if (!isset($auth_list) || !is_array($auth_list) || $auth_list === []) {
+        return $auth;
+    }
+    $primary = isset($environment) ? odata_bc_first_environment_name($environment) : null;
+    // $environment ontbreekt of is alleen 'mimir'. Alleen lokale config: geen
+    // getPrimaryEnvironment(), die bij een Mímir-storing companies.php aanroept
+    // en via de fallback opnieuw hier binnenkomt.
+    if ($primary === null && isset($environments)) {
+        $primary = odata_bc_first_environment_name($environments);
+    }
+    if ($primary === null) {
+        $configured = odata_bc_environment_list();
+        $primary = $configured[0] ?? null;
+    }
+    if ($primary !== null && strcasecmp($primary, $env) === 0) {
         return $auth;
     }
     return null;
@@ -269,8 +317,10 @@ function odata_bc_auth_for_fallback(array $passed): ?array
 }
 
 /**
- * Auth voor het environment in de URL of van het bedrijf. Niet de primaire
- * $auth als die bij een ander environment hoort.
+ * Auth voor het environment in de URL of van het bedrijf.
+ * Zonder $auth_list (of met een lege lijst) is $auth voor elk environment.
+ * Bij een gevulde lijst hoort $auth alleen bij de primaire $environment
+ * als die geen eigen entry heeft.
  */
 function odata_bc_auth_for_request(string $url, string $company = ''): ?array
 {
