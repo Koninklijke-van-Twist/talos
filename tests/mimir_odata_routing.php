@@ -278,6 +278,8 @@ try {
         $redirectMessage = $error->getMessage();
     }
     test_assert('Mímir volgt geen redirect', $redirectThrew, $redirectMessage);
+    // De mislukte redirect opent de circuit breaker; de rest van deze test is het happy path.
+    odata_mimir_circuit_reset();
 
     $beforeCache = glob(__DIR__ . '/../web/cache/odata/*.json') ?: [];
     $queryUrl = buildOdataCompanyUrl('', 'Production', "Van Twist's")
