@@ -93,6 +93,8 @@ if (str_contains($uri, '/mimir/api/query.php')) {
     echo json_encode(['value' => [[
         'No' => 'PRJ1',
         'Job_No' => 'PRJ1',
+        'Line_Amount' => 10,
+        'Status' => 'Open',
         'company' => (string) ($body['company'] ?? ''),
         'table' => (string) ($body['table'] ?? ''),
         'select' => $body['select'] ?? [],
