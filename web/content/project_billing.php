@@ -10,6 +10,9 @@ const PROJECT_BILLING_CHUNK_SIZE = 5;
 const PROJECT_BILLING_MAX_CALLS_PER_REQUEST = 40;
 const PROJECT_BILLING_JOB_LOOKUP_BATCH_SIZE = 50;
 
+// BC Job Status: option name "Completed", Dutch caption "Voltooid". Shown raw in Projectstatus.
+const PROJECT_BILLING_CLOSED_PROJECT_STATUSES = ['completed', 'voltooid'];
+
 function buildProjectInvoiceSelectClause(): string
 {
     return 'Job_No,Line_No,Planning_Date,Description,Document_No,Qty_to_Invoice,Line_Amount,LVS_Bill_to_Customer_No,KVT_Bill_To_Cust_No_WO,LVS_Work_Order_No,KVT_Memo_Invoice,KVT_Status_Work_Order,User_ID';
@@ -109,6 +112,34 @@ function filterSapImportRows(array $rows, bool $hideSapImports): array
     }));
 }
 
+function isPositiveBillableLineAmount(array $row): bool
+{
+    // Same field and cast as the amount column (Line_Amount).
+    return (float) ($row['Line_Amount'] ?? 0) > 0;
+}
+
+function isCompletedProjectStatus(string $status): bool
+{
+    $normalized = strtolower(trim($status));
+
+    return in_array($normalized, PROJECT_BILLING_CLOSED_PROJECT_STATUSES, true);
+}
+
+/**
+ * Drop €0 transfer lines and lines on completed projects (Asclepius #965).
+ * Project status is joined from Projecten after the line fetch, so it is filtered here.
+ */
+function filterNonBillableProjectInvoiceRows(array $rows): array
+{
+    return array_values(array_filter($rows, static function (array $row): bool {
+        if (!isPositiveBillableLineAmount($row)) {
+            return false;
+        }
+
+        return !isCompletedProjectStatus((string) ($row['_jobcard_status'] ?? ''));
+    }));
+}
+
 function fetchProjectDetailsByJobNumbers(
     string $baseUrl,
     string $environment,
@@ -204,6 +235,7 @@ function fetchProjectInvoiceRowsForCompanyWindow(
             . '&$orderby=' . rawurlencode('Planning_Date asc');
     } else {
         $filters = ['Qty_to_Invoice gt 0'];
+        $filters[] = 'Line_Amount gt 0';
         $filters[] = "(No eq '800000' or No eq '800001')";
         // Standard BC option values for Work Order status.
         $filters[] = "(KVT_Status_Work_Order eq 'Open' or KVT_Status_Work_Order eq 'Planned' or KVT_Status_Work_Order eq 'Checked')";
@@ -297,6 +329,9 @@ function mergeCompanyRowsForWindow(
                     $rows = enrichRowsWithProjectData($rows, $projectData);
                 }
             }
+
+            // Also applied when debug_all_rules skips the OData Line_Amount filter.
+            $rows = filterNonBillableProjectInvoiceRows($rows);
 
             $debugCompanyResults[$companyName]['ok'] = true;
             $debugCompanyResults[$companyName]['count'] += count($rows);
