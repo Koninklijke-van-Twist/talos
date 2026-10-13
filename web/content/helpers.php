@@ -227,3 +227,70 @@ function renderInvoiceTableRow(
 
     return $html . '</tr>';
 }
+
+/**
+ * JSON-literal voor inline JavaScript.
+ * Encode faalt nooit zichtbaar: JSON_THROW_ON_ERROR, ongeldige UTF-8 wordt
+ * vervangen, en bij een fout komt een geldige fallback (null, [] of {}) terug
+ * zonder warning in de pagina.
+ */
+function jsJson(mixed $value): string
+{
+    $flags = JSON_UNESCAPED_UNICODE
+        | JSON_INVALID_UTF8_SUBSTITUTE
+        | JSON_HEX_TAG
+        | JSON_THROW_ON_ERROR;
+
+    $encoded = false;
+    set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
+        error_log('[Talos jsJson] ' . $message . ' in ' . $file . ':' . $line);
+        return true;
+    });
+
+    try {
+        $encoded = json_encode($value, $flags);
+    } catch (Throwable $exception) {
+        error_log('[Talos jsJson] ' . $exception->getMessage());
+        $encoded = false;
+    } finally {
+        restore_error_handler();
+    }
+
+    if (is_string($encoded) && $encoded !== '') {
+        return $encoded;
+    }
+
+    if (is_array($value)) {
+        return array_is_list($value) ? '[]' : '{}';
+    }
+
+    return 'null';
+}
+
+/**
+ * Zet display_errors uit zolang een inline script wordt gerenderd.
+ * odata.php zet display_errors aan; een warning midden in <script> is een syntaxfout.
+ */
+function beginInlineScript(): void
+{
+    $previous = ini_set('display_errors', '0');
+    $stack = $GLOBALS['talos_inline_script_display_errors'] ?? [];
+    if (!is_array($stack)) {
+        $stack = [];
+    }
+    $stack[] = $previous === false ? '0' : (string) $previous;
+    $GLOBALS['talos_inline_script_display_errors'] = $stack;
+}
+
+function endInlineScript(): void
+{
+    $stack = $GLOBALS['talos_inline_script_display_errors'] ?? [];
+    if (!is_array($stack) || $stack === []) {
+        ini_set('display_errors', '0');
+        return;
+    }
+
+    $previous = array_pop($stack);
+    $GLOBALS['talos_inline_script_display_errors'] = $stack;
+    ini_set('display_errors', (string) $previous);
+}

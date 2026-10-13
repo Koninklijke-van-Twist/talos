@@ -211,4 +211,54 @@ class HelpersTest extends TestCase
         $this->assertStringContainsString('data-col="cost_center_code">', $html);
         $this->assertStringContainsString('data-col="work_order">WO-1</td><td data-col="jobcard_status">Released</td>', $html);
     }
+
+    // --- jsJson() ---
+
+    public function testJsJsonEncodesStringsAndLists(): void
+    {
+        $this->assertSame('"Koninklijke van Twist"', jsJson('Koninklijke van Twist'));
+        $this->assertSame('[]', jsJson([]));
+        $this->assertSame('["PM"]', jsJson(['PM']));
+        $this->assertSame('{"PM":"Beheer"}', jsJson(['PM' => 'Beheer']));
+        $this->assertSame('null', jsJson(null));
+        $this->assertSame('false', jsJson(false));
+    }
+
+    public function testJsJsonReplacesInvalidUtf8(): void
+    {
+        $encoded = jsJson("Konin\xC3\x28");
+        $this->assertStringStartsWith('"', $encoded);
+        $this->assertNotSame('', $encoded);
+        json_decode($encoded);
+        $this->assertSame(JSON_ERROR_NONE, json_last_error());
+    }
+
+    public function testJsJsonFallsBackWhenEncodeThrows(): void
+    {
+        $this->assertSame('null', jsJson(INF));
+        $this->assertSame('null', jsJson(NAN));
+
+        $recursive = [];
+        $recursive[] = &$recursive;
+        $this->assertSame('[]', jsJson($recursive));
+
+        $map = ['PM' => INF];
+        $this->assertSame('{}', jsJson($map));
+    }
+
+    public function testJsJsonEscapesScriptBreakout(): void
+    {
+        $encoded = jsJson('</script><script>alert(1)</script>');
+        $this->assertStringNotContainsString('<', $encoded);
+        $this->assertStringNotContainsString('>', $encoded);
+    }
+
+    public function testInlineScriptContextRestoresDisplayErrors(): void
+    {
+        ini_set('display_errors', '1');
+        beginInlineScript();
+        $this->assertSame('0', (string) ini_get('display_errors'));
+        endInlineScript();
+        $this->assertSame('1', (string) ini_get('display_errors'));
+    }
 }
