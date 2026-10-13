@@ -2597,11 +2597,11 @@
                         response = await fetch(url, { credentials: 'same-origin', redirect: 'manual' });
                     } catch (networkError)
                     {
-                        // Een cross-origin redirect (naar Microsoft-login) eindigt hier ook.
-                        return { ok: false, sessionExpired: true, message: labels.sessionExpired };
+                        return { ok: false, message: 'Netwerkfout: ' + (networkError && networkError.message ? networkError.message : String(networkError)) };
                     }
 
-                    if (response.type === 'opaqueredirect' || response.status === 401 || response.redirected)
+                    // Met redirect: 'manual' komt een login-redirect terug als opaqueredirect (status 0).
+                    if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 401)
                     {
                         return { ok: false, sessionExpired: true, message: labels.sessionExpired };
                     }
