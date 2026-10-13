@@ -1250,6 +1250,7 @@
         </div>
     <?php endif; ?>
 
+    <?php beginInlineScript(); ?>
     <script>
         (function ()
         {
@@ -1287,31 +1288,31 @@
                 requiresCompanySelection: <?= !empty($requiresCompanySelection) ? 'true' : 'false' ?>,
                 endpoint: 'project_billing_stream.php',
                 inspectorEndpoint: 'project_billing_row_inspect.php',
-                company: <?= json_encode($selectedCompany, JSON_UNESCAPED_UNICODE) ?>,
+                company: <?= jsJson($selectedCompany) ?>,
                 debugOdata: <?= !empty($showOdataErrorDetails) ? 'true' : 'false' ?>,
                 debugAllRules: <?= !empty($debugFetchAllRules) ? 'true' : 'false' ?>,
                 hideSapImports: <?= !empty($hideSapImports) ? 'true' : 'false' ?>,
                 startPage: <?= (int) $currentPage + 1 ?>,
                 isPartial: <?= !empty($isPartialResult) ? 'true' : 'false' ?>,
                 maxPagesToLoad: 250,
-                failedText: <?= json_encode(LOC('msg.stream_table_failed'), JSON_UNESCAPED_UNICODE) ?>,
-                doneText: <?= json_encode(LOC('msg.stream_table_done'), JSON_UNESCAPED_UNICODE) ?>,
-                noMoreText: <?= json_encode(LOC('msg.stream_no_more'), JSON_UNESCAPED_UNICODE) ?>,
-                ruleSingular: <?= json_encode(LOC('summary.rule_singular'), JSON_UNESCAPED_UNICODE) ?>,
-                rulePlural: <?= json_encode(LOC('summary.rule_plural'), JSON_UNESCAPED_UNICODE) ?>,
-                statusOpenLabel: <?= json_encode(LOC('status.open'), JSON_UNESCAPED_UNICODE) ?>,
-                statusCheckedLabel: <?= json_encode(LOC('status.checked'), JSON_UNESCAPED_UNICODE) ?>,
-                statusPlannedLabel: <?= json_encode(LOC('status.planned'), JSON_UNESCAPED_UNICODE) ?>,
-                projectManagerAllLabel: <?= json_encode(LOC('filter.project_manager_all'), JSON_UNESCAPED_UNICODE) ?>,
-                costCenterCodeAllLabel: <?= json_encode(LOC('filter.cost_center_code_all'), JSON_UNESCAPED_UNICODE) ?>,
-                createdByAllLabel: <?= json_encode(LOC('filter.created_by_all'), JSON_UNESCAPED_UNICODE) ?>,
+                failedText: <?= jsJson(LOC('msg.stream_table_failed')) ?>,
+                doneText: <?= jsJson(LOC('msg.stream_table_done')) ?>,
+                noMoreText: <?= jsJson(LOC('msg.stream_no_more')) ?>,
+                ruleSingular: <?= jsJson(LOC('summary.rule_singular')) ?>,
+                rulePlural: <?= jsJson(LOC('summary.rule_plural')) ?>,
+                statusOpenLabel: <?= jsJson(LOC('status.open')) ?>,
+                statusCheckedLabel: <?= jsJson(LOC('status.checked')) ?>,
+                statusPlannedLabel: <?= jsJson(LOC('status.planned')) ?>,
+                projectManagerAllLabel: <?= jsJson(LOC('filter.project_manager_all')) ?>,
+                costCenterCodeAllLabel: <?= jsJson(LOC('filter.cost_center_code_all')) ?>,
+                createdByAllLabel: <?= jsJson(LOC('filter.created_by_all')) ?>,
                 canInspectRows: <?= $canInspectRows ? 'true' : 'false' ?>,
-                ownProjectManager: <?= json_encode($projectManagerDefault, JSON_UNESCAPED_UNICODE) ?>,
-                projectManagerDefaultFilter: <?= json_encode($projectManagerFilterDefault, JSON_UNESCAPED_UNICODE) ?>,
-                ownProjectManagerLabel: <?= json_encode($projectManagerOwnLabel, JSON_UNESCAPED_UNICODE) ?>,
-                allowedProjectManagers: <?= json_encode($allowedProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
-                allProjectManagers: <?= json_encode($allProjectManagerList, JSON_UNESCAPED_UNICODE) ?>,
-                pmDisplayMap: <?= json_encode($projectManagerDisplayLookup, JSON_UNESCAPED_UNICODE) ?>
+                ownProjectManager: <?= jsJson($projectManagerDefault) ?>,
+                projectManagerDefaultFilter: <?= jsJson($projectManagerFilterDefault) ?>,
+                ownProjectManagerLabel: <?= jsJson($projectManagerOwnLabel) ?>,
+                allowedProjectManagers: <?= jsJson($allowedProjectManagerList) ?>,
+                allProjectManagers: <?= jsJson($allProjectManagerList) ?>,
+                pmDisplayMap: <?= jsJson($projectManagerDisplayLookup) ?>
             };
 
             const moneyFormatter = new Intl.NumberFormat(document.documentElement.lang || 'nl', {
@@ -1352,7 +1353,7 @@
                 return;
             }
 
-            //console.log('[Talos auth debug]', <?= json_encode($authDebug, JSON_UNESCAPED_UNICODE) ?>);
+            //console.log('[Talos auth debug]', <?= jsJson($authDebug) ?>);
 
             if (manualPagerEl)
             {
@@ -2313,8 +2314,10 @@
             runStream();
         })();
     </script>
+    <?php endInlineScript(); ?>
 
     <?php if (!empty($isAdminUser)): ?>
+        <?php beginInlineScript(); ?>
         <script>
             (function ()
             {
@@ -2337,13 +2340,13 @@
                 }
 
                 const labels = {
-                    emptyUsers: <?= json_encode(LOC('dept_access.empty_users'), JSON_UNESCAPED_UNICODE) ?>,
-                    modalTitle: <?= json_encode(LOC('dept_access.modal_title'), JSON_UNESCAPED_UNICODE) ?>,
-                    saveFailed: <?= json_encode(LOC('dept_access.save_failed'), JSON_UNESCAPED_UNICODE) ?>,
-                    loadFailed: <?= json_encode(LOC('dept_access.load_failed'), JSON_UNESCAPED_UNICODE) ?>,
-                    sessionExpired: <?= json_encode(LOC('dept_access.session_expired'), JSON_UNESCAPED_UNICODE) ?>,
-                    usersUnavailable: <?= json_encode(LOC('dept_access.users_unavailable'), JSON_UNESCAPED_UNICODE) ?>,
-                    noDepartments: <?= json_encode(LOC('dept_access.no_departments'), JSON_UNESCAPED_UNICODE) ?>
+                    emptyUsers: <?= jsJson(LOC('dept_access.empty_users')) ?>,
+                    modalTitle: <?= jsJson(LOC('dept_access.modal_title')) ?>,
+                    saveFailed: <?= jsJson(LOC('dept_access.save_failed')) ?>,
+                    loadFailed: <?= jsJson(LOC('dept_access.load_failed')) ?>,
+                    sessionExpired: <?= jsJson(LOC('dept_access.session_expired')) ?>,
+                    usersUnavailable: <?= jsJson(LOC('dept_access.users_unavailable')) ?>,
+                    noDepartments: <?= jsJson(LOC('dept_access.no_departments')) ?>
                 };
 
                 const state = {
@@ -2639,7 +2642,7 @@
 
                 async function loadAccessData ()
                 {
-                    const company = <?= json_encode($selectedCompany ?? '', JSON_UNESCAPED_UNICODE) ?>;
+                    const company = <?= jsJson($selectedCompany ?? '') ?>;
                     const params = new URLSearchParams();
                     params.set('action', 'list');
                     if (company)
@@ -2685,7 +2688,6 @@
                             : labels.usersUnavailable + ' getusers.php — ' + usersResult.message;
                         userListEl.insertAdjacentHTML('afterbegin', '<div class="alert alert-warning">' + escapeHtml(warning) + '</div>');
                     }
-                }
                 }
 
                 async function saveUserDepartments (email, departments)
@@ -2854,6 +2856,7 @@
                 });
             })();
         </script>
+        <?php endInlineScript(); ?>
     <?php endif; ?>
 
 </body>
