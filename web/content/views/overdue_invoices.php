@@ -2341,6 +2341,8 @@
                     modalTitle: <?= json_encode(LOC('dept_access.modal_title'), JSON_UNESCAPED_UNICODE) ?>,
                     saveFailed: <?= json_encode(LOC('dept_access.save_failed'), JSON_UNESCAPED_UNICODE) ?>,
                     loadFailed: <?= json_encode(LOC('dept_access.load_failed'), JSON_UNESCAPED_UNICODE) ?>,
+                    sessionExpired: <?= json_encode(LOC('dept_access.session_expired'), JSON_UNESCAPED_UNICODE) ?>,
+                    usersUnavailable: <?= json_encode(LOC('dept_access.users_unavailable'), JSON_UNESCAPED_UNICODE) ?>,
                     noDepartments: <?= json_encode(LOC('dept_access.no_departments'), JSON_UNESCAPED_UNICODE) ?>
                 };
 
@@ -2587,41 +2589,103 @@
                     setModalOpen(true);
                 }
 
-                async function loadAccessData ()
+                async function fetchJsonEndpoint (url)
                 {
+                    let response;
                     try
                     {
-                        const company = <?= json_encode($selectedCompany ?? '', JSON_UNESCAPED_UNICODE) ?>;
-                        const params = new URLSearchParams();
-                        params.set('action', 'list');
-                        if (company)
-                        {
-                            params.set('company', company);
-                        }
-
-                        const [accessResponse, usersResponse] = await Promise.all([
-                            fetch('department_access_api.php?' + params.toString(), { credentials: 'same-origin' }),
-                            fetch('getusers.php', { credentials: 'same-origin' })
-                        ]);
-
-                        const accessPayload = await accessResponse.json();
-                        const usersPayload = await usersResponse.json();
-
-                        if (!accessPayload || accessPayload.ok !== true)
-                        {
-                            throw new Error(labels.loadFailed);
-                        }
-
-                        state.departments = Array.isArray(accessPayload.departments) ? accessPayload.departments : [];
-                        state.users = Array.isArray(accessPayload.users) ? accessPayload.users : [];
-                        state.groups = Array.isArray(accessPayload.groups) ? accessPayload.groups : buildGroups(state.users);
-                        state.directoryUsers = Array.isArray(usersPayload) ? usersPayload : [];
-                        state.loaded = true;
-                        renderUserList();
-                    } catch (error)
+                        response = await fetch(url, { credentials: 'same-origin', redirect: 'manual' });
+                    } catch (networkError)
                     {
-                        userListEl.innerHTML = '<div class="alert alert-danger">' + escapeHtml(labels.loadFailed) + '</div>';
+                        // Een cross-origin redirect (naar Microsoft-login) eindigt hier ook.
+                        return { ok: false, sessionExpired: true, message: labels.sessionExpired };
                     }
+
+                    if (response.type === 'opaqueredirect' || response.status === 401 || response.redirected)
+                    {
+                        return { ok: false, sessionExpired: true, message: labels.sessionExpired };
+                    }
+
+                    const contentType = response.headers.get('content-type') || '';
+                    const text = await response.text();
+                    let payload = null;
+                    if (contentType.indexOf('application/json') !== -1)
+                    {
+                        try
+                        {
+                            payload = JSON.parse(text);
+                        } catch (parseError)
+                        {
+                            payload = null;
+                        }
+                    }
+
+                    if (!response.ok || payload === null)
+                    {
+                        let detail = payload && payload.error ? String(payload.error) : '';
+                        if (!detail)
+                        {
+                            detail = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+                        }
+                        if (!detail && payload === null)
+                        {
+                            detail = 'geen JSON (content-type: ' + (contentType || 'onbekend') + ')';
+                        }
+                        return { ok: false, message: 'HTTP ' + response.status + (detail ? ': ' + detail : '') };
+                    }
+
+                    return { ok: true, payload: payload };
+                }
+
+                async function loadAccessData ()
+                {
+                    const company = <?= json_encode($selectedCompany ?? '', JSON_UNESCAPED_UNICODE) ?>;
+                    const params = new URLSearchParams();
+                    params.set('action', 'list');
+                    if (company)
+                    {
+                        params.set('company', company);
+                    }
+
+                    const [accessResult, usersResult] = await Promise.all([
+                        fetchJsonEndpoint('department_access_api.php?' + params.toString()),
+                        fetchJsonEndpoint('getusers.php')
+                    ]);
+
+                    if (!accessResult.ok || !accessResult.payload || accessResult.payload.ok !== true)
+                    {
+                        const message = accessResult.sessionExpired
+                            ? labels.sessionExpired
+                            : labels.loadFailed + ' department_access_api.php — '
+                                + (accessResult.ok ? String((accessResult.payload && accessResult.payload.error) || 'ok !== true') : accessResult.message);
+                        userListEl.innerHTML = '<div class="alert alert-danger">' + escapeHtml(message) + '</div>';
+                        return;
+                    }
+
+                    const accessPayload = accessResult.payload;
+                    state.departments = Array.isArray(accessPayload.departments) ? accessPayload.departments : [];
+                    state.users = Array.isArray(accessPayload.users) ? accessPayload.users : [];
+                    state.groups = Array.isArray(accessPayload.groups) ? accessPayload.groups : buildGroups(state.users);
+                    state.directoryUsers = usersResult.ok && Array.isArray(usersResult.payload) ? usersResult.payload : [];
+                    state.loaded = true;
+
+                    try
+                    {
+                        renderUserList();
+                    } catch (renderError)
+                    {
+                        userListEl.innerHTML = '<div class="alert alert-danger">' + escapeHtml(labels.loadFailed + ' ' + (renderError && renderError.message ? renderError.message : '')) + '</div>';
+                        return;
+                    }
+
+                    if (!usersResult.ok)
+                    {
+                        const warning = usersResult.sessionExpired
+                            ? labels.sessionExpired
+                            : labels.usersUnavailable + ' getusers.php — ' + usersResult.message;
+                        userListEl.insertAdjacentHTML('afterbegin', '<div class="alert alert-warning">' + escapeHtml(warning) + '</div>');
+                    }
+                }
                 }
 
                 async function saveUserDepartments (email, departments)
