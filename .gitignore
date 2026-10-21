@@ -17,3 +17,4 @@ web/content/data/php_errors/
 
 web/analytics/analytics.sqlite
 web/analytics/analytics.sqlite-*
+web/analytics/.htaccess
